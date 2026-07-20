@@ -1,5 +1,9 @@
 #!/bin/bash
-# 假 KFCD。
+# 假 KFCD。行为由环境变量控制：
+#   STUB_KFCD_FAIL=1     写崩溃 prn，退出码 4
+#   STUB_KFCD_SLEEP=<s>  睡眠 <s> 秒后再继续
+#   STUB_KFCD_NOFINISH=1 写一个不含 FINISHED 的 prn，退出码 0
+#                        （模拟二进制"成功退出但未真正完成"）
 set -u
 input=$(cat)
 job=$(printf '%s\n' "$input" | sed -n 's/^JOBNAM=//p' | head -1)
@@ -12,6 +16,11 @@ fi
 
 if [ -n "${STUB_KFCD_SLEEP:-}" ]; then
     sleep "$STUB_KFCD_SLEEP"
+fi
+
+if [ "${STUB_KFCD_NOFINISH:-0}" = "1" ]; then
+    echo "KFCD ran but did not finish" > "kfcd/$job.prn"
+    exit 0
 fi
 
 printf 'KFCD FINISHED for %s\nTOT-PBE   -1234.567890\n' "$job" > "kfcd/$job.prn"

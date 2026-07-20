@@ -25,14 +25,27 @@ assert_eq "0" "$?" "已完成点的退出码应为 0"
 after=$(cat "$tmp/DFT_0001/kfcd/DFT_0001_2.85.prn")
 assert_eq "$before" "$after" "kfcd prn 不应被改写"
 
-it "跑完清掉大中间文件，但保留 prn"
+it "EMTO_CLEANUP=1 时跑完清掉大中间文件，但保留 prn"
 tmp2=$(mktemp -d)
 make_fixture "$tmp2" DFT_0002 3.01
-( cd "$tmp2" && bash "$repo_root/jobs/run_one.sh" DFT_0002/DFT_0002_3.01.kgrn )
+( cd "$tmp2" && EMTO_CLEANUP=1 bash "$repo_root/jobs/run_one.sh" DFT_0002/DFT_0002_3.01.kgrn )
+assert_no_file "$tmp2/DFT_0002/kgrn/DFT_0002_3.01.atm" ".atm 应被删除"
 assert_no_file "$tmp2/DFT_0002/kgrn/DFT_0002_3.01.chd" ".chd 应被删除"
 assert_no_file "$tmp2/DFT_0002/kgrn/DFT_0002_3.01.pot" ".pot 应被删除"
+assert_no_file "$tmp2/DFT_0002/kgrn/DFT_0002_3.01.zms" ".zms 应被删除"
 assert_no_file "$tmp2/DFT_0002/kgrn/tmp/DFT_0002_3.01.tmp" "tmp 文件应被删除"
 assert_file "$tmp2/DFT_0002/kgrn/DFT_0002_3.01.prn" "kgrn prn 必须保留"
+
+it "默认（不设 EMTO_CLEANUP）跑完保留中间文件"
+tmp2b=$(mktemp -d)
+make_fixture "$tmp2b" DFT_0002B 3.02
+( cd "$tmp2b" && bash "$repo_root/jobs/run_one.sh" DFT_0002B/DFT_0002B_3.02.kgrn )
+assert_file "$tmp2b/DFT_0002B/kgrn/DFT_0002B_3.02.atm" ".atm 应保留"
+assert_file "$tmp2b/DFT_0002B/kgrn/DFT_0002B_3.02.chd" ".chd 应保留"
+assert_file "$tmp2b/DFT_0002B/kgrn/DFT_0002B_3.02.pot" ".pot 应保留"
+assert_file "$tmp2b/DFT_0002B/kgrn/DFT_0002B_3.02.zms" ".zms 应保留"
+assert_file "$tmp2b/DFT_0002B/kgrn/tmp/DFT_0002B_3.02.tmp" "tmp 文件应保留"
+assert_file "$tmp2b/DFT_0002B/kgrn/DFT_0002B_3.02.prn" "kgrn prn 必须保留"
 
 it "KGRN 未收敛时不跑 KFCD，退出码非 0"
 tmp3=$(mktemp -d)
@@ -67,5 +80,16 @@ assert_file "$wl/timing.log" "timing.log 存在"
 assert_contains "$wl/timing.log" "DFT_0006_3.10" "记录了 jobname"
 assert_eq "4" "$(awk '{print NF}' "$wl/timing.log" | head -1)" "每行 4 列"
 
-rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp6" "$wl"
+it "KFCD 退出码 0 但 prn 未含 FINISHED 时应报非 0"
+tmp7=$(mktemp -d)
+make_fixture "$tmp7" DFT_0007 3.15
+( cd "$tmp7" && STUB_KFCD_NOFINISH=1 bash "$repo_root/jobs/run_one.sh" DFT_0007/DFT_0007_3.15.kgrn )
+rc=$?
+if [ "$rc" -eq 0 ]; then
+    assert_eq "非0" "0" "kfcd 未完成应返回非 0"
+else
+    assert_eq "1" "1" "kfcd 未完成返回非 0"
+fi
+
+rm -rf "$tmp" "$tmp2" "$tmp2b" "$tmp3" "$tmp4" "$tmp5" "$tmp6" "$tmp7" "$wl"
 summary

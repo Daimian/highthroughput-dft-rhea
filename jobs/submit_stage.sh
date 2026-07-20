@@ -6,6 +6,7 @@
 #   --maxpar N       同时运行的 array task 上限（默认 8）
 #   --time HH:MM:SS  单个 array task 时限（默认 24:00:00）
 #   --partition P    分区（默认 deflt）
+#   --account A      Slurm 账户（默认 p0020537）
 #   --limit N        只取 worklist 前 N 个任务（冒烟测试用）
 #   --dry-run        只打印统计与 sbatch 命令，不落盘不提交
 #
@@ -14,7 +15,7 @@
 set -u
 
 usage() {
-    sed -n '2,15p' "$0"
+    sed -n '2,16p' "$0"
 }
 
 # Helper: ensure an option has a value before accessing $2
@@ -57,6 +58,7 @@ CHUNK=1000
 MAXPAR=8
 TIME=24:00:00
 PARTITION=deflt
+ACCOUNT=p0020537
 LIMIT=0
 DRYRUN=0
 
@@ -82,6 +84,11 @@ while [ $# -gt 0 ]; do
         --partition|-p)
             check_option_has_value "$1" "$#"
             PARTITION=$2
+            shift 2
+            ;;
+        --account)
+            check_option_has_value "--account" "$#"
+            ACCOUNT=$2
             shift 2
             ;;
         --limit)
@@ -171,6 +178,7 @@ sbatch_args=(
     "--array=1-${nchunks}%${MAXPAR}"
     "-t" "$TIME"
     "-p" "$PARTITION"
+    "-A" "$ACCOUNT"
     "-J" "emto_s${stage}"
     "--export=ALL,WORKLIST_DIR=${worklist_dir},EMTO_REPO_ROOT=${repo_root}"
     "-o" "${worklist_dir}/slurm-%A_%a.out"

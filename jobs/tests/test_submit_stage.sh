@@ -188,18 +188,19 @@ setup_fakerepo "$tmp6"
 make_fixture "$tmp6/stage1_eos_coarse" DFT_0001 2.85 2.90 2.95
 cap="$tmp6/sbatch_args.txt"
 out=$(cd "$tmp6" && REPO_ROOT="$tmp6" SBATCH_CAPTURE="$cap" bash jobs/submit_stage.sh 1 \
-        --chunk 2 --maxpar 3 --time 02:00:00 --partition deflt_short 2>&1)
+        --chunk 2 --maxpar 3 --time 02:00:00 --partition deflt_short --account p0020454 2>&1)
 assert_file "$cap" "sbatch 被调用"
 assert_eq "1" "$(grep -cx -- '--array=1-2%3' "$cap")" "array 规格：2 块、并发 3"
 assert_eq "1" "$(grep -cx '02:00:00' "$cap")" "时限"
 assert_eq "1" "$(grep -cx 'deflt_short' "$cap")" "分区"
+assert_eq "1" "$(grep -cx 'p0020454' "$cap")" "账户（显式指定覆盖默认）"
 assert_eq "1" "$(grep -cx 'emto_s1' "$cap")" "作业名"
 wl6=$(printf '%s\n' "$out" | sed -n 's/^worklist: //p')
 assert_eq "1" "$(grep -cx -- "--export=ALL,WORKLIST_DIR=${wl6},EMTO_REPO_ROOT=${tmp6}" "$cap")" "导出 WORKLIST_DIR 与 EMTO_REPO_ROOT"
 assert_eq "1" "$(grep -cx -- "$tmp6/jobs/job_array.sh" "$cap")" "作业体路径"
 assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'Submitted batch job')" "透传 sbatch 输出"
 
-it "默认值：chunk=1000 maxpar=8 time=24:00:00 partition=deflt"
+it "默认值：chunk=1000 maxpar=8 time=24:00:00 partition=deflt account=p0020537"
 tmp7=$(mktemp -d)
 setup_fakerepo "$tmp7"
 make_fixture "$tmp7/stage1_eos_coarse" DFT_0001 2.85
@@ -208,7 +209,16 @@ out7=$(cd "$tmp7" && REPO_ROOT="$tmp7" SBATCH_CAPTURE="$cap2" bash jobs/submit_s
 assert_eq "1" "$(grep -cx -- '--array=1-1%8' "$cap2")" "默认 maxpar=8，1 个任务 1 块"
 assert_eq "1" "$(grep -cx '24:00:00' "$cap2")" "默认时限"
 assert_eq "1" "$(grep -cx 'deflt' "$cap2")" "默认分区"
+assert_eq "1" "$(grep -cx 'p0020537' "$cap2")" "默认账户"
 assert_eq "1" "$(printf '%s\n' "$out7" | grep -cE '块数:[[:space:]]+1（每块 1000）')" "默认 chunk=1000 体现在块数统计打印中"
 
-rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp5b" "$tmp6a" "$tmp7a" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16"
+it "--account 选项缺少值时报错退出 2"
+tmp17=$(mktemp -d)
+setup_fakerepo "$tmp17"
+make_fixture "$tmp17/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp17" && REPO_ROOT="$tmp17" bash jobs/submit_stage.sh 1 --account 2>&1)
+assert_eq "2" "$?" "--account 缺少值退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--account 缺少值报错" || assert_eq "有错误" "无错误" "--account 缺少值应报错"
+
+rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp5b" "$tmp6a" "$tmp7a" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16" "$tmp17"
 summary

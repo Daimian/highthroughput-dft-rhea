@@ -109,6 +109,7 @@ jobs/submit_stage.sh 1
 | `--maxpar N` | 8 | 同时运行的 array task（节点）上限 |
 | `--time HH:MM:SS` | 24:00:00 | 单个 array task 时限 |
 | `--partition P` / `-p P` | `deflt` | 分区 |
+| `--account A` | `p0020537` | Slurm 账户 |
 | `--limit N` | 0（全部） | 只取前 N 个未完成任务；0 表示不限制 |
 | `--dry-run` | | 只打印统计与 sbatch 命令，不落盘不提交 |
 

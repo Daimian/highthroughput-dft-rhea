@@ -2,15 +2,14 @@
 #SBATCH -N 1
 #SBATCH -n 96
 #SBATCH -c 1
-#SBATCH -A p0020465
 #SBATCH -C avx512
 #SBATCH --mem-per-cpu=3800
 #SBATCH --mail-type=NONE
 #SBATCH --export=ALL
 #
 # Slurm array 作业体：一个 array task 独占一个 96 核节点，用 xargs -P 96
-# 动态消费自己那块 chunk。-t / --array / -p / -J 由 submit_stage.sh 在命令行
-# 指定，不写死在这里。
+# 动态消费自己那块 chunk。-t / --array / -p / -J / -A 由 submit_stage.sh 在
+# 命令行指定，不写死在这里。
 #
 # 环境变量:
 #   WORKLIST_DIR        worklist 目录绝对路径（由 submit_stage.sh 通过 --export 传入）

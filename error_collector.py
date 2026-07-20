@@ -44,7 +44,11 @@ def check_emto_errors(alloy_id, stage_dir):
         if os.path.isfile(kgrn_file):
             with open(kgrn_file, 'r') as f:
                 content = f.read()
-            if 'NOT CONVERGED' in content.upper():
+            # 用正向判据，不能搜 "not converged"：KGRN 在每次 SCF 迭代里都会
+            # 打印 "PATHOP: CPA equation ... not converged" 和 "Linear loop not
+            # converged"，一个完全收敛的点也有几十条，搜子串会把所有成功的点
+            # 全判成失败。完成标记与 run_one.sh / submit_stage.sh 保持一致。
+            if 'CALCULATION FINISHED' not in content.upper():
                 errors.append({'sws': sws, 'error_type': 'scf_not_converged',
                                'message': f'KGRN SCF not converged for {job}'})
 

@@ -20,7 +20,7 @@ dir=$(dirname "$f")
 job=$(basename "$f" .kgrn)
 timeout_s=${EMTO_TIMEOUT:-7200}
 
-cd "$dir" || exit 1
+cd "$dir" || { echo "错误：无法进入合金目录 $dir" >&2; exit 1; }
 mkdir -p kgrn/tmp kfcd
 
 # 记一行计时。单行 <4096 字节的 >> 追加在 96 并发下是原子的，无需加锁。

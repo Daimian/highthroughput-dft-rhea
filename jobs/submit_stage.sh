@@ -123,7 +123,9 @@ fi
 
 # 扫描：完成判据是 kfcd/<job>.prn 存在且含 FINISHED
 pending=()
+found=0
 while IFS= read -r kgrn_file; do
+    found=$((found + 1))
     d=$(dirname "$kgrn_file")
     j=$(basename "$kgrn_file" .kgrn)
     if [ -f "$d/kfcd/$j.prn" ] && grep -qi finished "$d/kfcd/$j.prn"; then
@@ -131,6 +133,18 @@ while IFS= read -r kgrn_file; do
     fi
     pending+=("$kgrn_file")
 done < <(find "$stage_dir" -mindepth 2 -maxdepth 2 -name '*.kgrn' | sort)
+
+# find 一个 .kgrn 都没扫到，但 stage 目录下确实有子目录：说明这个 stage
+# 的实际布局和 -mindepth 2 -maxdepth 2 假设的“stage/<合金>/<job>.kgrn”
+# 两层结构对不上（例如 stage3 弹性常数输入嵌套更深），而不是真的全部
+# 完成。这种情况不能打印“无未完成任务”后退出 0——那和真正做完了没法
+# 区分，会被上层脚本/人误判为成功。
+if [ "$found" -eq 0 ]; then
+    if find "$stage_dir" -mindepth 1 -maxdepth 1 -type d -print -quit | grep -q .; then
+        echo "警告：$stage_dir 下有子目录，但没有找到任何 *.kgrn 文件（预期路径形如 $stage_dir/<合金>/<job>.kgrn）；请检查该 stage 的目录层级是否与预期不同" >&2
+        exit 1
+    fi
+fi
 
 total=${#pending[@]}
 if [ "$total" -eq 0 ]; then
@@ -158,7 +172,7 @@ sbatch_args=(
     "-t" "$TIME"
     "-p" "$PARTITION"
     "-J" "emto_s${stage}"
-    "--export=ALL,WORKLIST_DIR=${worklist_dir}"
+    "--export=ALL,WORKLIST_DIR=${worklist_dir},EMTO_REPO_ROOT=${repo_root}"
     "-o" "${worklist_dir}/slurm-%A_%a.out"
     "$repo_root/jobs/job_array.sh"
 )

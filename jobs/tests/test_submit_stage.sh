@@ -75,23 +75,37 @@ rm -rf "$tmp5/stage1_eos_coarse"
 ( cd "$tmp5" && REPO_ROOT="$tmp5" bash jobs/submit_stage.sh 1 > /dev/null 2>&1 )
 assert_eq "1" "$?" "缺 stage 目录应退出 1"
 
+it "stage 目录布局与预期不符（.kgrn 嵌套更深）时报错退出，不当成已完成"
+tmp5b=$(mktemp -d)
+setup_fakerepo "$tmp5b"
+rm -rf "$tmp5b/stage1_eos_coarse"
+# 假装 stage3 弹性常数输入嵌套了一层额外目录，.kgrn 不再落在
+# stage_dir/<合金>/ 这两层，而是 stage_dir/<合金>/<变形>/
+mkdir -p "$tmp5b/stage1_eos_coarse/DFT_0001/strain_01"
+printf 'KGRN\nJOBNAM=DFT_0001_strain01\n' \
+    > "$tmp5b/stage1_eos_coarse/DFT_0001/strain_01/DFT_0001_strain01.kgrn"
+err=$(cd "$tmp5b" && REPO_ROOT="$tmp5b" bash jobs/submit_stage.sh 1 2>&1)
+assert_eq "1" "$?" "布局不符应退出非 0"
+printf '%s\n' "$err" | grep -qi "警告" && assert_eq "1" "1" "布局不符应打印警告" || assert_eq "有警告" "无警告" "布局不符应打印警告"
+printf '%s\n' "$err" | grep -qi "无未完成任务" && assert_eq "不应出现" "出现了" "布局不符不应打印“无未完成任务”" || assert_eq "1" "1" "布局不符不应混同于已完成"
+
 it "stage 参数非法时退出 2"
 ( cd "$tmp" && REPO_ROOT="$tmp" bash jobs/submit_stage.sh 9 > /dev/null 2>&1 )
 assert_eq "2" "$?" "非法 stage 退出 2"
 
 it "--chunk 选项缺少值时报错退出 2"
-tmp6=$(mktemp -d)
-setup_fakerepo "$tmp6"
-make_fixture "$tmp6/stage1_eos_coarse" DFT_0001 2.85
-err=$(cd "$tmp6" && REPO_ROOT="$tmp6" bash jobs/submit_stage.sh 1 --chunk 2>&1)
+tmp6a=$(mktemp -d)
+setup_fakerepo "$tmp6a"
+make_fixture "$tmp6a/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp6a" && REPO_ROOT="$tmp6a" bash jobs/submit_stage.sh 1 --chunk 2>&1)
 assert_eq "2" "$?" "--chunk 缺少值退出 2"
 printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--chunk 缺少值报错" || assert_eq "有错误" "无错误" "--chunk 缺少值应报错"
 
 it "--chunk 非整数值时报错退出 2"
-tmp7=$(mktemp -d)
-setup_fakerepo "$tmp7"
-make_fixture "$tmp7/stage1_eos_coarse" DFT_0001 2.85
-err=$(cd "$tmp7" && REPO_ROOT="$tmp7" bash jobs/submit_stage.sh 1 --chunk abc 2>&1)
+tmp7a=$(mktemp -d)
+setup_fakerepo "$tmp7a"
+make_fixture "$tmp7a/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp7a" && REPO_ROOT="$tmp7a" bash jobs/submit_stage.sh 1 --chunk abc 2>&1)
 assert_eq "2" "$?" "--chunk 非整数退出 2"
 printf '%s\n' "$err" | grep -q "正整数" && assert_eq "1" "1" "--chunk 非整数报错提示" || assert_eq "有提示" "无提示" "--chunk 非整数应提示正整数"
 
@@ -181,7 +195,7 @@ assert_eq "1" "$(grep -cx '02:00:00' "$cap")" "时限"
 assert_eq "1" "$(grep -cx 'deflt_short' "$cap")" "分区"
 assert_eq "1" "$(grep -cx 'emto_s1' "$cap")" "作业名"
 wl6=$(printf '%s\n' "$out" | sed -n 's/^worklist: //p')
-assert_eq "1" "$(grep -cx -- "--export=ALL,WORKLIST_DIR=${wl6}" "$cap")" "导出 WORKLIST_DIR"
+assert_eq "1" "$(grep -cx -- "--export=ALL,WORKLIST_DIR=${wl6},EMTO_REPO_ROOT=${tmp6}" "$cap")" "导出 WORKLIST_DIR 与 EMTO_REPO_ROOT"
 assert_eq "1" "$(grep -cx -- "$tmp6/jobs/job_array.sh" "$cap")" "作业体路径"
 assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'Submitted batch job')" "透传 sbatch 输出"
 
@@ -196,5 +210,5 @@ assert_eq "1" "$(grep -cx '24:00:00' "$cap2")" "默认时限"
 assert_eq "1" "$(grep -cx 'deflt' "$cap2")" "默认分区"
 assert_eq "1" "$(printf '%s\n' "$out7" | grep -cE '块数:[[:space:]]+1（每块 1000）')" "默认 chunk=1000 体现在块数统计打印中"
 
-rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16"
+rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp5b" "$tmp6a" "$tmp7a" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16"
 summary

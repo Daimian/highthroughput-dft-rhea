@@ -180,8 +180,9 @@ assert_eq "1" "$(grep -cx -- '--array=1-2%3' "$cap")" "array 规格：2 块、�
 assert_eq "1" "$(grep -cx '02:00:00' "$cap")" "时限"
 assert_eq "1" "$(grep -cx 'deflt_short' "$cap")" "分区"
 assert_eq "1" "$(grep -cx 'emto_s1' "$cap")" "作业名"
-assert_eq "1" "$(grep -c 'WORKLIST_DIR=' "$cap")" "导出 WORKLIST_DIR"
-assert_eq "1" "$(grep -c 'jobs/job_array.sh' "$cap")" "作业体路径"
+wl6=$(printf '%s\n' "$out" | sed -n 's/^worklist: //p')
+assert_eq "1" "$(grep -cx -- "--export=ALL,WORKLIST_DIR=${wl6}" "$cap")" "导出 WORKLIST_DIR"
+assert_eq "1" "$(grep -cx -- "$tmp6/jobs/job_array.sh" "$cap")" "作业体路径"
 assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'Submitted batch job')" "透传 sbatch 输出"
 
 it "默认值：chunk=1000 maxpar=8 time=24:00:00 partition=deflt"
@@ -189,10 +190,11 @@ tmp7=$(mktemp -d)
 setup_fakerepo "$tmp7"
 make_fixture "$tmp7/stage1_eos_coarse" DFT_0001 2.85
 cap2="$tmp7/sbatch_args.txt"
-( cd "$tmp7" && REPO_ROOT="$tmp7" SBATCH_CAPTURE="$cap2" bash jobs/submit_stage.sh 1 > /dev/null 2>&1 )
+out7=$(cd "$tmp7" && REPO_ROOT="$tmp7" SBATCH_CAPTURE="$cap2" bash jobs/submit_stage.sh 1 2>&1)
 assert_eq "1" "$(grep -cx -- '--array=1-1%8' "$cap2")" "默认 maxpar=8，1 个任务 1 块"
 assert_eq "1" "$(grep -cx '24:00:00' "$cap2")" "默认时限"
 assert_eq "1" "$(grep -cx 'deflt' "$cap2")" "默认分区"
+assert_eq "1" "$(printf '%s\n' "$out7" | grep -cE '块数:[[:space:]]+1（每块 1000）')" "默认 chunk=1000 体现在块数统计打印中"
 
 rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16"
 summary

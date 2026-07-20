@@ -131,9 +131,15 @@ results/
 - **SCF 未收敛不跑 KFCD**：`kgrn/<job>.prn` 不含 `FINISHED` 时直接失败退出，
   省下 KFCD 的时间；该点会被 `error_collector.py` 记为
   `scf_not_converged` / `missing_output`。
-- **清理中间文件**：跑完删 `kgrn/<job>.{atm,chd,pot,zms}` 与 `kgrn/tmp/<job>*`。
-  4.6 万个点的势函数/电荷密度文件会撑爆 scratch 配额。删除是安全的：已完成的点
-  下次直接跳过，未完成的点本来也要从头重算，不存在从已有势函数热启动的需求。
+- **KFCD 也按同一判据验收**：KFCD 退出码为 0 但 `kfcd/<job>.prn` 不含 `FINISHED`
+  时，强制失败退出。否则 `run_one.sh` 会报成功、而提交层的扫描仍视该点为未完成，
+  导致它在每一轮重新提交时被反复重算。完成判据必须全脚本统一。
+- **清理中间文件（默认关闭）**：`EMTO_CLEANUP=1` 时跑完删
+  `kgrn/<job>.{atm,chd,pot,zms}` 与 `kgrn/tmp/<job>*`；默认保留。
+  保留是为了冒烟测试阶段能排查 SCF 收敛过程；全量提交时在 `job_array.sh` 里打开
+  即可，因为 4.6 万个点的势函数/电荷密度文件会撑爆 scratch 配额。
+  删除是安全的：已完成的点下次直接跳过，未完成的点本来也要从头重算，不存在从
+  已有势函数热启动的需求。`.prn` 任何情况下都不删。
 
 - **计时**：每个点跑完向 `$WORKLIST_DIR/timing.log` 追加一行
   `<job> <kgrn秒> <kfcd秒> <退出码>`（用 `>>` 单行追加，96 并发下小于 PIPE_BUF
@@ -208,6 +214,7 @@ xargs -a "$chunk" -n 1 -P 96 -I{} bash jobs/run_one.sh {}
 | `--time` | 24:00:00 | `deflt` 上限；块本身只需 ~3.5 h，余量吸收慢点 |
 | `--partition` | `deflt` | 节点池 1199 vs `long` 606，起跑更快 |
 | `EMTO_TIMEOUT` | 7200 | 单点 2 h 封顶，不收敛的点不吃满整块 |
+| `EMTO_CLEANUP` | 未设（不清理） | 冒烟阶段保留中间文件便于排查；全量提交时置 1 |
 
 按 chunk=1000：stage1 → 10 块，stage2 → 18 块，stage3 → 20 块，均远低于
 MaxArraySize=10000。
@@ -277,7 +284,7 @@ python run_pipeline.py --stage 3 --analyze
 
 | 风险 | 对策 |
 | --- | --- |
-| scratch 配额被中间文件撑爆 | `run_one.sh` 跑完即删 `.atm/.chd/.pot/.zms` 与 `tmp/` |
+| scratch 配额被中间文件撑爆 | 全量提交时置 `EMTO_CLEANUP=1`，`run_one.sh` 跑完即删 `.atm/.chd/.pot/.zms` 与 `tmp/`（默认保留，供冒烟阶段排查） |
 | 单点不收敛吃满整块时间 | `EMTO_TIMEOUT` 单点 2 h 封顶 |
 | 96 个并发进程的 I/O 压力 | 中间文件写在各合金自己的 `kgrn/tmp/`，分散在不同目录；冒烟测试后观察全节点满载时的表现 |
 | 误杀其它作业的进程 | 用 `timeout` 而非 `pgrep kill` |

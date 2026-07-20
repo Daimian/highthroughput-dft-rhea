@@ -2,7 +2,7 @@ import os
 import csv
 import pyemto
 from config import EMTO_PARAMS, COARSE_RANGE, RESULTS_DIR
-from error_collector import check_emto_errors, write_error_report
+from error_collector import check_emto_errors, write_error_report, _extract_sws
 
 
 def fit_eos(alloy_id, sws_list, stage_dir, atoms, concs):
@@ -153,19 +153,33 @@ def analyze_all(stage, result_csv_path, error_csv_path, retry_csv_path, alloys):
 
 
 def _get_sws_from_dir(alloy_dir, alloy_id):
+    """Discover the SWS points that exist for an alloy by looking at the
+    KGRN .prn files it has produced (KGRN never writes .dat files).
+
+    The jobname (filename minus the .prn extension) is parsed with
+    error_collector._extract_sws so that the SWS values returned here are
+    guaranteed to compare equal to the ones fit_eos gets back from
+    check_emto_errors for the same jobs -- both are the float() of the
+    exact same substring, so there is no risk of divergent parsing or
+    representation causing valid_sws / error_sws set membership to fail.
+    """
     kgrn_dir = os.path.join(alloy_dir, 'kgrn')
     if not os.path.isdir(kgrn_dir):
         return []
     sws_list = []
     prefix = alloy_id + '_'
     for f in sorted(os.listdir(kgrn_dir)):
-        if f.startswith(prefix) and f.endswith('.dat'):
+        if f.startswith(prefix) and f.endswith('.prn'):
+            jobname = f[:-4]
+            parts = jobname.rsplit('_', 1)
+            if len(parts) != 2:
+                continue
             try:
-                sws = float(f[len(prefix):-4])
-                sws_list.append(sws)
+                float(parts[1])
             except ValueError:
-                pass
-    return sws_list
+                continue
+            sws_list.append(_extract_sws(jobname))
+    return sorted(sws_list)
 
 
 def _append_result(csv_path, alloy_id, alloy_name, sws0, B0):

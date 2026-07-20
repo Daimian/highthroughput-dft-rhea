@@ -31,7 +31,7 @@ check_option_has_value() {
 validate_positive_int() {
     local option=$1
     local value=$2
-    if ! [[ "$value" =~ ^[0-9]+$ ]] || [ "$value" -eq 0 ]; then
+    if ! [[ "$value" =~ ^[1-9][0-9]*$ ]]; then
         echo "错误：$option 必须是正整数，得到 '$value'" >&2
         exit 2
     fi
@@ -41,7 +41,7 @@ validate_positive_int() {
 validate_nonnegative_int() {
     local option=$1
     local value=$2
-    if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+    if ! [[ "$value" =~ ^(0|[1-9][0-9]*)$ ]]; then
         echo "错误：$option 必须是非负整数，得到 '$value'" >&2
         exit 2
     fi

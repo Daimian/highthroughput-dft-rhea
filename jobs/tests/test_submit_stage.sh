@@ -152,5 +152,21 @@ err=$(cd "$tmp14" && REPO_ROOT="$tmp14" bash jobs/submit_stage.sh 1 --partition 
 assert_eq "2" "$?" "--partition 缺少值退出 2"
 printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--partition 缺少值报错" || assert_eq "有错误" "无错误" "--partition 缺少值应报错"
 
-rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14"
+it "--chunk 前导零时报错退出 2（octal 回归测试）"
+tmp15=$(mktemp -d)
+setup_fakerepo "$tmp15"
+make_fixture "$tmp15/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp15" && REPO_ROOT="$tmp15" bash jobs/submit_stage.sh 1 --chunk 010 2>&1)
+assert_eq "2" "$?" "--chunk 010 应退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--chunk 010 应报错" || assert_eq "有错误" "无错误" "--chunk 010 应报错"
+
+it "--limit 前导零时报错退出 2（octal 回归测试）"
+tmp16=$(mktemp -d)
+setup_fakerepo "$tmp16"
+make_fixture "$tmp16/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp16" && REPO_ROOT="$tmp16" bash jobs/submit_stage.sh 1 --limit 009 2>&1)
+assert_eq "2" "$?" "--limit 009 应退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--limit 009 应报错" || assert_eq "有错误" "无错误" "--limit 009 应报错"
+
+rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16"
 summary

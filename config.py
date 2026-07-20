@@ -12,13 +12,17 @@ EMTO_PARAMS = dict(
     afm='P',
     expan='S',
     sofc='Y',
-    # 以下四项共同解决 "EFXMOM: Fermi level not found"。它们是组合起效的：
-    # 在 Hf72Ta26Mo2（Ta+Hf 占 98%，数据集中最难的成分之一）的最压缩点上，
-    # 单独放宽任何一项都不够，且 depth 保持 1.0 时即便其余三项到位仍然失败。
+    # 针对 "EFXMOM: Fermi level not found" 的设置。逐项都有因子实验支持：
+    #   depth=0.95  必需 —— 其余项到位时 depth=1.0 在 Hf72Ta26Mo2 上仍失败
+    #   nx=9        无害的余量（因子实验证明它不是四元系回归的原因）
+    #   Hf_4f5d6s   4f14 进入价带
+    # amix 曾试过 0.02，但因子实验显示它才是 Nb/Ta/Mo/W 四元系大面积失败的
+    # 元凶（混合太慢，前几次迭代的势停在重叠原子势附近），故保持默认 0.05。
     depth=0.95,          # 能量围道深度（Ry），pyemto 默认 1.0
-    amix=0.02,           # SCF 混合步长，默认 0.05
     nx=9,                # 费米能级搜索窗口点数，默认 5
     setups={'Hf': '4f5d6s'},   # Hf 的 4f14 进入价带，默认为 Hf_5d6s
+    # 注意：efgs 无法用单一全局值 —— Hf72Ta26Mo2 需要 -0.3，
+    # Nb22Ta34Mo22W22 需要 0.0，两者互斥。见标定结果。
 )
 
 CSV_FILE = '20260718-refractory-hea-compositions-1600-highthroughput-dft.csv'

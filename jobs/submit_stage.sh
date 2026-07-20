@@ -192,6 +192,7 @@ if [ "$DRYRUN" -eq 1 ]; then
 fi
 
 mkdir -p "$worklist_dir"
+worklist_created=1
 i=0
 c=1
 for f in "${pending[@]}"; do
@@ -204,3 +205,17 @@ done
 
 echo "worklist: $worklist_dir"
 "$submit_cmd" "${sbatch_args[@]}"
+submit_status=$?
+
+# 提交失败：本次调用刚创建的 worklist 目录不会再有任何 Slurm 作业消费它，
+# 留着会被“取最新目录”的监控流程当成正在跑的任务。只清理本次创建的那个
+# 目录——用时间戳前缀 + worklist_created 标志双重确认这确实是本次创建的，
+# 不是别处传进来的路径——并以 sbatch 自身的退出码退出，避免失败被上报成功。
+if [ "$submit_status" -ne 0 ]; then
+    if [ "${worklist_created:-0}" -eq 1 ] && [ -d "$worklist_dir" ] \
+        && [[ "$worklist_dir" == "$repo_root/jobs/worklists/stage${stage}_"* ]]; then
+        rm -rf "$worklist_dir"
+    fi
+    echo "错误：提交失败（退出码 $submit_status），已清理 worklist 目录 $worklist_dir" >&2
+    exit "$submit_status"
+fi

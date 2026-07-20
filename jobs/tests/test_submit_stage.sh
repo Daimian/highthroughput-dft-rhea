@@ -220,5 +220,26 @@ err=$(cd "$tmp17" && REPO_ROOT="$tmp17" bash jobs/submit_stage.sh 1 --account 2>
 assert_eq "2" "$?" "--account 缺少值退出 2"
 printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--account 缺少值报错" || assert_eq "有错误" "无错误" "--account 缺少值应报错"
 
-rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp5b" "$tmp6a" "$tmp7a" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16" "$tmp17"
+it "提交失败时清理 worklist 目录，退出码透传，且有提示"
+tmp18=$(mktemp -d)
+setup_fakerepo "$tmp18"
+make_fixture "$tmp18/stage1_eos_coarse" DFT_0001 2.85 2.90
+err18=$(cd "$tmp18" && REPO_ROOT="$tmp18" SUBMIT_CMD=false bash jobs/submit_stage.sh 1 2>&1)
+status18=$?
+wl18=$(printf '%s\n' "$err18" | sed -n 's/^worklist: //p')
+assert_eq "1" "$status18" "提交失败退出码应透传（false 退出 1）"
+assert_no_file "$wl18" "提交失败后 worklist 目录应被清理"
+printf '%s\n' "$err18" | grep -q "错误：" && assert_eq "1" "1" "提交失败应打印错误提示" || assert_eq "有错误" "无错误" "提交失败应打印错误提示"
+
+it "提交成功时保留 worklist 目录及其 chunk 文件"
+tmp19=$(mktemp -d)
+setup_fakerepo "$tmp19"
+make_fixture "$tmp19/stage1_eos_coarse" DFT_0001 2.85 2.90
+out19=$(cd "$tmp19" && REPO_ROOT="$tmp19" SUBMIT_CMD=true bash jobs/submit_stage.sh 1 2>&1)
+status19=$?
+wl19=$(printf '%s\n' "$out19" | sed -n 's/^worklist: //p')
+assert_eq "0" "$status19" "提交成功退出码 0"
+assert_file "$wl19/chunk_0001" "提交成功后 worklist 目录及 chunk 文件应保留"
+
+rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp5b" "$tmp6a" "$tmp7a" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14" "$tmp15" "$tmp16" "$tmp17" "$tmp18" "$tmp19"
 summary

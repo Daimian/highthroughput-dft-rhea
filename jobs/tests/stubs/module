@@ -1,0 +1,21 @@
+#!/bin/bash
+# 假 module 命令。行为由环境变量控制：
+#   STUB_MODULE_FAIL=1    任何 load/purge 都失败，退出码 127
+set -u
+
+if [ "${STUB_MODULE_FAIL:-0}" = "1" ]; then
+    # 任何 load/purge 都失败
+    case "$1" in
+        load|purge)
+            echo "module: command not found: $1" >&2
+            exit 127
+            ;;
+        *)
+            # 其他命令（如初始化）通过
+            exit 0
+            ;;
+    esac
+else
+    # 正常模式：假装成功
+    exit 0
+fi

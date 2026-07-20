@@ -4,7 +4,8 @@ import csv
 import argparse
 import numpy as np
 from config import (CSV_FILE, STAGE_DIRS, RESULTS_DIR, ELEMENTS,
-                    COARSE_N_POINTS, COARSE_RANGE, FINE_N_POINTS, FINE_RANGE)
+                    COARSE_N_POINTS, COARSE_RANGE, FINE_N_POINTS, FINE_RANGE,
+                    DEFAULT_LATPATH)
 from vegard import calc_vegard_sws
 from emto_generator import parse_csv, generate_eos_inputs, generate_elastic_inputs
 from eos_analysis import analyze_all as eos_analyze_all
@@ -19,7 +20,7 @@ def parse_args(argv=None):
     parser.add_argument('--analyze', action='store_true')
     parser.add_argument('--retry', action='store_true')
     parser.add_argument('--errors', action='store_true')
-    parser.add_argument('--latpath', type=str, default=None)
+    parser.add_argument('--latpath', type=str, default=DEFAULT_LATPATH)
     return parser.parse_args(argv)
 
 
@@ -202,8 +203,6 @@ def main():
         sys.exit("Error: --stage is required (unless using --errors)")
 
     if args.generate:
-        if args.latpath is None:
-            sys.exit("Error: --latpath is required for --generate")
         if args.stage == 1:
             stage1_generate(alloys, args.latpath)
         elif args.stage == 2:
@@ -220,8 +219,6 @@ def main():
             stage3_analyze()
 
     elif args.retry:
-        if args.latpath is None:
-            sys.exit("Error: --latpath is required for --retry")
         if args.stage == 1:
             stage1_retry(alloys, args.latpath)
         else:

@@ -24,6 +24,8 @@ STAGE_DIRS = {
 
 RESULTS_DIR = 'results'
 
+DEFAULT_LATPATH = './structures'
+
 COARSE_N_POINTS = 6
 COARSE_RANGE = 0.03
 

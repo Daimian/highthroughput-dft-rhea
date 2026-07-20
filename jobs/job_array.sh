@@ -29,8 +29,16 @@ if [ "${EMTO_SKIP_MODULES:-0}" != "1" ]; then
         [ -f /etc/profile.d/tuda.sh ] && . /etc/profile.d/tuda.sh
     fi
     module purge
+    if [ $? -ne 0 ]; then
+        echo "错误：module purge 失败，模块系统不可用" >&2
+        exit 1
+    fi
     # 注意顺序：intel-oneapi-mkl 挂在 openmpi 层级下，必须先 load openmpi
     module load openmpi/4.1.8-6xzv intel-oneapi-compilers/2025.3.1-pbro intel-oneapi-mkl/2025.3.1-iqtm
+    if [ $? -ne 0 ]; then
+        echo "错误：module load 失败，检查模块名称或模块树：openmpi/4.1.8-6xzv intel-oneapi-compilers/2025.3.1-pbro intel-oneapi-mkl/2025.3.1-iqtm" >&2
+        exit 1
+    fi
 fi
 
 export PATH="${EMTO_BIN:-$HOME/intel-mkl-omp-build-2021-Mar/bin}:$PATH"

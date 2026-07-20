@@ -43,5 +43,10 @@ printf 'DFT_0007/DFT_0007_2.80.kgrn\nDFT_0007/DFT_0007_2.84.kgrn\n' > "$wl2/chun
   bash "$repo_root/jobs/job_array.sh" > /dev/null 2>&1 )
 assert_eq "2" "$(wc -l < "$wl2/timing.log")" "两个点都被尝试过"
 
+# 注意：无法测试 module 加载失败的错误处理。
+# 原因：本测试机器安装了 Lmod，它提供的 module shell 函数优先级高于 PATH 上的脚本，
+# 且 job_array.sh 的设计会自动从 /etc/profile.d 加载 Lmod，所以无法注入假的失败 module 命令。
+# 但代码中已添加了 module purge/load 后的退出码检查，会在真实集群上生效。
+
 rm -rf "$tmp" "$tmp2"
 summary

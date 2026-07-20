@@ -79,5 +79,78 @@ it "stage 参数非法时退出 2"
 ( cd "$tmp" && REPO_ROOT="$tmp" bash jobs/submit_stage.sh 9 > /dev/null 2>&1 )
 assert_eq "2" "$?" "非法 stage 退出 2"
 
-rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5"
+it "--chunk 选项缺少值时报错退出 2"
+tmp6=$(mktemp -d)
+setup_fakerepo "$tmp6"
+make_fixture "$tmp6/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp6" && REPO_ROOT="$tmp6" bash jobs/submit_stage.sh 1 --chunk 2>&1)
+assert_eq "2" "$?" "--chunk 缺少值退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--chunk 缺少值报错" || assert_eq "有错误" "无错误" "--chunk 缺少值应报错"
+
+it "--chunk 非整数值时报错退出 2"
+tmp7=$(mktemp -d)
+setup_fakerepo "$tmp7"
+make_fixture "$tmp7/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp7" && REPO_ROOT="$tmp7" bash jobs/submit_stage.sh 1 --chunk abc 2>&1)
+assert_eq "2" "$?" "--chunk 非整数退出 2"
+printf '%s\n' "$err" | grep -q "正整数" && assert_eq "1" "1" "--chunk 非整数报错提示" || assert_eq "有提示" "无提示" "--chunk 非整数应提示正整数"
+
+it "--chunk 零值时报错退出 2"
+tmp8=$(mktemp -d)
+setup_fakerepo "$tmp8"
+make_fixture "$tmp8/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp8" && REPO_ROOT="$tmp8" bash jobs/submit_stage.sh 1 --chunk 0 2>&1)
+assert_eq "2" "$?" "--chunk 零值退出 2"
+printf '%s\n' "$err" | grep -q "正整数" && assert_eq "1" "1" "--chunk 零值报错提示" || assert_eq "有提示" "无提示" "--chunk 零值应提示正整数"
+
+it "--maxpar 选项缺少值时报错退出 2"
+tmp9=$(mktemp -d)
+setup_fakerepo "$tmp9"
+make_fixture "$tmp9/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp9" && REPO_ROOT="$tmp9" bash jobs/submit_stage.sh 1 --maxpar 2>&1)
+assert_eq "2" "$?" "--maxpar 缺少值退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--maxpar 缺少值报错" || assert_eq "有错误" "无错误" "--maxpar 缺少值应报错"
+
+it "--limit 选项缺少值时报错退出 2"
+tmp10=$(mktemp -d)
+setup_fakerepo "$tmp10"
+make_fixture "$tmp10/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp10" && REPO_ROOT="$tmp10" bash jobs/submit_stage.sh 1 --limit 2>&1)
+assert_eq "2" "$?" "--limit 缺少值退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--limit 缺少值报错" || assert_eq "有错误" "无错误" "--limit 缺少值应报错"
+
+it "--limit 零值允许（无限制）"
+tmp11=$(mktemp -d)
+setup_fakerepo "$tmp11"
+make_fixture "$tmp11/stage1_eos_coarse" DFT_0001 2.85 2.90 2.95
+out=$(cd "$tmp11" && REPO_ROOT="$tmp11" SUBMIT_CMD=true bash jobs/submit_stage.sh 1 --limit 0 2>&1)
+assert_eq "0" "$?" "--limit 0 应成功"
+wl=$(printf '%s\n' "$out" | sed -n 's/^worklist: //p')
+assert_eq "3" "$(wc -l < "$wl/chunk_0001")" "--limit 0 应包含全部 3 个任务"
+
+it "--limit 非整数值时报错退出 2"
+tmp12=$(mktemp -d)
+setup_fakerepo "$tmp12"
+make_fixture "$tmp12/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp12" && REPO_ROOT="$tmp12" bash jobs/submit_stage.sh 1 --limit xyz 2>&1)
+assert_eq "2" "$?" "--limit 非整数退出 2"
+printf '%s\n' "$err" | grep -q "非负整数" && assert_eq "1" "1" "--limit 非整数报错提示" || assert_eq "有提示" "无提示" "--limit 非整数应提示非负整数"
+
+it "--time 选项缺少值时报错退出 2"
+tmp13=$(mktemp -d)
+setup_fakerepo "$tmp13"
+make_fixture "$tmp13/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp13" && REPO_ROOT="$tmp13" bash jobs/submit_stage.sh 1 --time 2>&1)
+assert_eq "2" "$?" "--time 缺少值退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--time 缺少值报错" || assert_eq "有错误" "无错误" "--time 缺少值应报错"
+
+it "--partition 选项缺少值时报错退出 2"
+tmp14=$(mktemp -d)
+setup_fakerepo "$tmp14"
+make_fixture "$tmp14/stage1_eos_coarse" DFT_0001 2.85
+err=$(cd "$tmp14" && REPO_ROOT="$tmp14" bash jobs/submit_stage.sh 1 --partition 2>&1)
+assert_eq "2" "$?" "--partition 缺少值退出 2"
+printf '%s\n' "$err" | grep -q "错误：" && assert_eq "1" "1" "--partition 缺少值报错" || assert_eq "有错误" "无错误" "--partition 缺少值应报错"
+
+rm -rf "$tmp" "$tmp2" "$tmp3" "$tmp4" "$tmp5" "$tmp6" "$tmp7" "$tmp8" "$tmp9" "$tmp10" "$tmp11" "$tmp12" "$tmp13" "$tmp14"
 summary

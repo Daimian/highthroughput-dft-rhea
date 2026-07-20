@@ -17,6 +17,36 @@ usage() {
     sed -n '2,15p' "$0"
 }
 
+# Helper: ensure an option has a value before accessing $2
+check_option_has_value() {
+    local option=$1
+    local remaining_arg_count=$2
+    if [ "$remaining_arg_count" -lt 2 ]; then
+        echo "错误：选项 $option 需要一个值" >&2
+        exit 2
+    fi
+}
+
+# Helper: validate that a value is a positive integer (>= 1)
+validate_positive_int() {
+    local option=$1
+    local value=$2
+    if ! [[ "$value" =~ ^[0-9]+$ ]] || [ "$value" -eq 0 ]; then
+        echo "错误：$option 必须是正整数，得到 '$value'" >&2
+        exit 2
+    fi
+}
+
+# Helper: validate that a value is a non-negative integer (>= 0)
+validate_nonnegative_int() {
+    local option=$1
+    local value=$2
+    if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+        echo "错误：$option 必须是非负整数，得到 '$value'" >&2
+        exit 2
+    fi
+}
+
 stage=${1:-}
 case "$stage" in
     1|2|3) shift ;;
@@ -32,18 +62,51 @@ DRYRUN=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --chunk)     CHUNK=$2; shift 2 ;;
-        --maxpar)    MAXPAR=$2; shift 2 ;;
-        --time)      TIME=$2; shift 2 ;;
-        --partition|-p) PARTITION=$2; shift 2 ;;
-        --limit)     LIMIT=$2; shift 2 ;;
-        --dry-run)   DRYRUN=1; shift ;;
-        -h|--help)   usage; exit 0 ;;
-        *) echo "错误：未知选项 $1" >&2; usage; exit 2 ;;
+        --chunk)
+            check_option_has_value "--chunk" "$#"
+            CHUNK=$2
+            validate_positive_int "--chunk" "$CHUNK"
+            shift 2
+            ;;
+        --maxpar)
+            check_option_has_value "--maxpar" "$#"
+            MAXPAR=$2
+            validate_positive_int "--maxpar" "$MAXPAR"
+            shift 2
+            ;;
+        --time)
+            check_option_has_value "--time" "$#"
+            TIME=$2
+            shift 2
+            ;;
+        --partition|-p)
+            check_option_has_value "$1" "$#"
+            PARTITION=$2
+            shift 2
+            ;;
+        --limit)
+            check_option_has_value "--limit" "$#"
+            LIMIT=$2
+            validate_nonnegative_int "--limit" "$LIMIT"
+            shift 2
+            ;;
+        --dry-run)
+            DRYRUN=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "错误：未知选项 $1" >&2
+            usage
+            exit 2
+            ;;
     esac
 done
 
-# REPO_ROOT 可覆盖，测试用假仓库时需要（jobs/ 是指回真仓库的符号链接）
+# REPO_ROOT 可覆盖，便于测试用假仓库（使用本地 REPO_ROOT 而非相对路径查找）
 repo_root=${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
 cd "$repo_root" || exit 1
 

@@ -9,7 +9,7 @@
 原子百分比之和为 100）。
 
 > **注意**：KSTR / BMDL / SHAPE 结构文件由用户自行提供（`--latpath` 指向的目录，
-> 默认 `./structures`）。本仓库只负责 KGRN/KFCD 的生成与结果分析，不负责作业提交。
+> 默认 `/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures`）。本仓库只负责 KGRN/KFCD 的生成与结果分析，不负责作业提交。
 
 ## 计算参数
 
@@ -82,7 +82,7 @@ python run_pipeline.py --errors --stage 1
 | `--analyze` | 分析该阶段已完成的输出 |
 | `--retry` | 按重试队列重新生成输入（仅 stage 1 支持） |
 | `--errors` | 打印错误统计汇总 |
-| `--latpath PATH` | KSTR/BMDL/SHAPE 所在目录，默认 `./structures` |
+| `--latpath PATH` | KSTR/BMDL/SHAPE 所在目录，默认 `/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures` |
 
 ## 输出文件
 

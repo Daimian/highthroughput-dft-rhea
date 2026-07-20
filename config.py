@@ -24,7 +24,7 @@ STAGE_DIRS = {
 
 RESULTS_DIR = 'results'
 
-DEFAULT_LATPATH = './structures'
+DEFAULT_LATPATH = '/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures'
 
 COARSE_N_POINTS = 6
 COARSE_RANGE = 0.03

@@ -5,7 +5,7 @@
 算完的结果做状态方程（EOS）拟合、弹性常数拟合与力学性能推导。
 
 输入数据为 `20260718-refractory-hea-compositions-1600-highthroughput-dft.csv`，
-包含 1597 个成分（Ti, Zr, Hf, V, Nb, Ta, Mo, W, Re 九元素体系，2–7 组元，
+包含 1598 个成分（Ti, Zr, Hf, V, Nb, Ta, Mo, W, Re 九元素体系，2–7 组元，
 原子百分比之和为 100）。
 
 > **注意**：KSTR / BMDL / SHAPE 结构文件由用户自行提供（`--latpath` 指向的目录，
@@ -32,7 +32,7 @@
 ## 三阶段流程
 
 ```
-CSV (1597 个成分)
+CSV (1598 个成分)
    │  vegard.py:  SWS_guess = Σ (c_i/100) · SWS_i
    ▼
 Stage 1  粗扫 EOS   6 点, SWS_guess ±3%     → stage1_eos_coarse/DFT_XXXX/

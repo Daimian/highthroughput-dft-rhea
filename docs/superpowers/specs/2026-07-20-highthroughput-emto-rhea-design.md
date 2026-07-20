@@ -9,7 +9,7 @@ KSTR, BMDL, and SHAPE files are provided externally by the user. This codebase o
 ## Input Data
 
 - CSV file: `20260718-refractory-hea-compositions-1600-highthroughput-dft.csv`
-- 1597 alloy compositions (header + 1597 rows)
+- 1598 alloy compositions (header + 1598 rows; the file has no trailing newline, so `wc -l` reports 1598)
 - 9 elements: Ti, Zr, Hf, V, Nb, Ta, Mo, W, Re
 - Concentrations in atomic percent (sum to 100)
 - Alloy complexity: 2-7 component systems

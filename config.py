@@ -12,6 +12,9 @@ EMTO_PARAMS = dict(
     afm='P',
     expan='S',
     sofc='Y',
+    # 能量围道深度（Ry）。pyemto 默认 1.0，富 Ta 合金在该值下大量报
+    # "EFXMOM: Fermi level not found"。
+    depth=0.95,
 )
 
 CSV_FILE = '20260718-refractory-hea-compositions-1600-highthroughput-dft.csv'

@@ -10,6 +10,12 @@
 
 > **注意**：KSTR / BMDL / SHAPE 结构文件由用户自行提供（`--latpath` 指向的目录，
 > 默认 `/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures`）。本仓库只负责 KGRN/KFCD 的生成与结果分析，不负责作业提交。
+>
+> 仓库里的 `structures/` 只跟踪 kstr/bmdl/shape 的**输入卡**（`*.kstr` / `*.bmdl` /
+> `*.shape`）和生成脚本 `get_kstr.sh`。KGRN 真正读取的 `kstr/*.tfh`、KFCD 读取的
+> `bmdl/*.mdl` 与 `shape/*.shp`（约 280 MB）未纳入版本管理，clone 后需在
+> `structures/` 下运行 `get_kstr.sh`（即 `kstr < X.kstr`、`bmdl < X.bmdl`、
+> `shape < X.shape`）重新生成。
 
 ## 计算参数
 

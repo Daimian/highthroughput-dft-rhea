@@ -1,0 +1,23 @@
+#! /usr/bin/env EMTO
+EMTO_PATH=./STR/kstr/smx
+SUBL=1 
+SPLT=0.0                  
+
+Loop 1:MAT=V100
+Loop 2:SWS=(2.75 0.01 2.85:1)
+STR=bcc
+
+job=%MAT%SWS{4.2f}%STR               
+                                    
+CPU=2
+STMP=A
+SOFC=Y
+NKX=29
+NKY=29
+NKZ=29
+CRT=m
+AFM=P
+IEX=7
+ALPCPA=0.602
+# -----End of File-------#the flag for end the input file  must have it
+#vim:ft=sh

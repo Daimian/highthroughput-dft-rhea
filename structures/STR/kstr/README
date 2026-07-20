@@ -1,0 +1,83 @@
+README file for KSTR (22 Jan 2008)
+
+Run KSTR as:
+
+ ./source/kstr < JOBNAM.dat
+
+Input file: JOBNAM.dat 
+
+Sample files: 
+             fcc.dat            (face centered cubic)
+             bco0-5.dat         (body centered orthorombic, 
+                                 distorted fcc e=0.00-0.05 for C44)
+             fco0-5.dat         (face centered orthorombic, 
+                                 distorted fcc e=0.00-0.05 for (C11-C12)/2))
+             bcc.dat            (body centered cubic)
+             Bco0-5.dat         (body centered orthorombic, 
+                                 distorted bcc e=0.00-0.05 for (C11-C12)/2))
+             Fco0-5.dat         (face centered orthorombic, 
+                                 distorted bcc e=0.00-0.05 for C44)
+             hcp.dat            (hexagonal close packed c/a=1.63299316)
+             hcpm0-5.dat        (monoclinic with basis,
+                                 distorted hcp  e=0.00-0.05 for C44, c/a=1.603)
+             hcpo0-5.dat        (basis centered orthorombic with basis,
+                                 distorted hcp  e=0.00-0.05 for C66, c/a=1.603)
+
+Input-output:
+
+ JOBNAM     -name for the job, slope matrix file
+ DIR001     -location for the slope matrix file: JOBNAM.tfh
+ DIR006     -location for the printout: JOBNAM.prn
+
+parameter comment                                      recommended
+
+  MSGL   -controls the printout on the screen               1
+  MODE   -bulk (B) or surface (S) mode                      B
+  STORE  -store (Y) or not (N) the slope matrix             Y (always)
+  HIGH   -calculate (Y) or not (N) the higers               Y (always)
+  NL     -number of orbitals included (1,2,...,5)         
+  NLH    -number of highers included  (NLH>NL)              9 (or 11)
+  NLW    -Watson sphere for positive energies               9
+  NDER   -number of energy derivatives of the slope matrix  6 (at least 4)
+  ITRANS -screening matrix                                  3 (always)
+  NPRN   -printout in JOBNAM.prn
+  (K*W)^2-center of Taylor expansion                        0.0
+         -in the case of wide bands a second set of slope
+          matrix has to be generated for a negative (K*W)^2~ -20.0
+  DMAX   -radius of the cluster, its value depends on the
+          crystal and on the screening
+         -when calculating energy versus distortion (e.g., E(c/a)), DMAX
+          should be modified as the number of sites in the cluster
+          should remain constant
+  RWATS  -the radius of the Watson sphere is DMAX+RWATS     0.1
+  NQ3    -number of atoms in the unit cell
+  LAT    -lattice:
+          1      Simple cubic                                
+          2      Face centred cubic                          
+          3      Body centred cubic                          
+          4      Hexagonal close packed                      
+          5      Simple tetragonal                           
+          6      Body centred tetragonal                     
+          7      Trigonal                                    
+          8      Simple orthorombic                          
+          9      Base centred orthorombic                    
+         10      Body centred orthorombic                    
+         11      Face centred orthorombic                    
+         12      Simple monoclinic                           
+         13      Base centred monoclinic                     
+         14      Simple triclinic                            
+  IPRIM  -default (1) or special (0) setup of the primitive
+          vectors for IPRIM=1 the 10-12th lines has to be 
+          changed to a single line:
+ALPHA....=    90.000 BETA....=    90.000 GAMMA...=    90.000
+          where ALPHA,BETA,GAMMA are the angles formed by
+          A-C, C-A, A-B primitive vectors, respectively
+  NGHBP  -number of unit cells for generating the cluster   13
+  NQR2                                                       0
+  A,B,C  -lattice parameters
+  BSX,Y,Z-primitive vectors units of A (needed only for IPRIM=0)
+  QX,Y,Z -basis vactors in units of A
+  a/w    -hard sphere radii in units of Wigner-Seitz radii   0.70 (or smaller)
+  LAMDA  -constants for the Ewald sum of the Madelung matrix
+  AMAX
+  BMAX

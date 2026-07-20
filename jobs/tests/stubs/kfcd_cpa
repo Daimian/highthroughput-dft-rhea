@@ -1,0 +1,18 @@
+#!/bin/bash
+# 假 KFCD。
+set -u
+input=$(cat)
+job=$(printf '%s\n' "$input" | sed -n 's/^JOBNAM=//p' | head -1)
+mkdir -p kfcd
+
+if [ "${STUB_KFCD_FAIL:-0}" = "1" ]; then
+    echo "KFCD crashed" > "kfcd/$job.prn"
+    exit 4
+fi
+
+if [ -n "${STUB_KFCD_SLEEP:-}" ]; then
+    sleep "$STUB_KFCD_SLEEP"
+fi
+
+printf 'KFCD FINISHED for %s\nTOT-PBE   -1234.567890\n' "$job" > "kfcd/$job.prn"
+echo "stdout from kfcd_cpa"

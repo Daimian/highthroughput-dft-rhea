@@ -3,7 +3,7 @@
 #
 # 用法: jobs/submit_stage.sh <1|2|3> [选项]
 #   --chunk N        每块任务数（默认 1000）
-#   --maxpar N       同时运行的 array task 上限（默认 8）
+#   --maxpar N       同时运行的 array task 上限（默认 20）
 #   --time HH:MM:SS  单个 array task 时限（默认 24:00:00）
 #   --partition P    分区（默认 deflt）
 #   --account A      Slurm 账户（默认 p0020537）
@@ -55,7 +55,7 @@ case "$stage" in
 esac
 
 CHUNK=1000
-MAXPAR=8
+MAXPAR=20
 TIME=24:00:00
 PARTITION=deflt
 ACCOUNT=p0020537

@@ -200,13 +200,13 @@ assert_eq "1" "$(grep -cx -- "--export=ALL,WORKLIST_DIR=${wl6},EMTO_REPO_ROOT=${
 assert_eq "1" "$(grep -cx -- "$tmp6/jobs/job_array.sh" "$cap")" "作业体路径"
 assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'Submitted batch job')" "透传 sbatch 输出"
 
-it "默认值：chunk=1000 maxpar=8 time=24:00:00 partition=deflt account=p0020537"
+it "默认值：chunk=1000 maxpar=20 time=24:00:00 partition=deflt account=p0020537"
 tmp7=$(mktemp -d)
 setup_fakerepo "$tmp7"
 make_fixture "$tmp7/stage1_eos_coarse" DFT_0001 2.85
 cap2="$tmp7/sbatch_args.txt"
 out7=$(cd "$tmp7" && REPO_ROOT="$tmp7" SBATCH_CAPTURE="$cap2" bash jobs/submit_stage.sh 1 2>&1)
-assert_eq "1" "$(grep -cx -- '--array=1-1%8' "$cap2")" "默认 maxpar=8，1 个任务 1 块"
+assert_eq "1" "$(grep -cx -- '--array=1-1%20' "$cap2")" "默认 maxpar=20，1 个任务 1 块"
 assert_eq "1" "$(grep -cx '24:00:00' "$cap2")" "默认时限"
 assert_eq "1" "$(grep -cx 'deflt' "$cap2")" "默认分区"
 assert_eq "1" "$(grep -cx 'p0020537' "$cap2")" "默认账户"

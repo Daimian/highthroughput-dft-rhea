@@ -47,9 +47,10 @@ DEEP_TA_THRESHOLD = 30.0   # Ta 原子百分比，>= 此值用下面的 depth/am
 DEEP_TA_DEPTH = 0.80
 DEEP_TA_AMIX = 0.02
 
-# 仅 AMIX 覆盖：个别 Ta<30 的合金陷入亚稳多态，但 Ta 不高、不宜动 depth。对它们只把
-# AMIX 降到 DEEP_TA_AMIX（保持默认 depth 0.95），靠慢混合把点收敛回基态。
-AMIX_ONLY_ALLOYS = {'DFT_1009', 'DFT_1245', 'DFT_0270'}
+# 显式完整覆盖：个别 Ta<30 的合金同样陷入亚稳多态，与 Ta>=30 同等对待
+# （depth 0.80 + AMIX 0.02）。实测仅降 AMIX、保持 depth 0.95 对它们不够（三者均 Nb
+# 富集），需连同 depth 一起下调才收敛回基态。
+DEEP_TA_ALLOYS = {'DFT_1009', 'DFT_1245', 'DFT_0270'}
 
 # --- 逐点的费米能级初始猜测 (EFGS) -------------------------------------
 #

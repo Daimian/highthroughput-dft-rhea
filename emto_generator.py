@@ -3,24 +3,21 @@ import csv
 import numpy as np
 import pyemto
 from config import (ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH,
-                    DEEP_TA_AMIX, AMIX_ONLY_ALLOYS)
+                    DEEP_TA_AMIX, DEEP_TA_ALLOYS)
 from efgs import calc_efgs
 
 
 def _params_for(alloy_id, composition):
-    """EMTO_PARAMS with the deep-Ta convergence override, needed to keep the SCF
-    in the ground electronic state (see config):
-
-      * Ta >= DEEP_TA_THRESHOLD  -> smaller depth AND slower AMIX
-      * alloy in AMIX_ONLY_ALLOYS -> slower AMIX only (default depth kept)
-
-    Returns a fresh dict so EMTO_PARAMS is untouched. composition is
-    {element: at%}; None keeps the defaults."""
+    """EMTO_PARAMS with the deep-Ta convergence override (smaller depth + slower
+    AMIX), needed to keep the SCF in the ground electronic state. Applies when
+    Ta >= DEEP_TA_THRESHOLD, or when the alloy is explicitly listed in
+    DEEP_TA_ALLOYS (a few Ta<30 alloys that need it too). Returns a fresh dict so
+    EMTO_PARAMS is untouched. composition is {element: at%}; None keeps the
+    defaults."""
     params = dict(EMTO_PARAMS)
-    if composition and composition.get('Ta', 0) >= DEEP_TA_THRESHOLD:
+    ta = composition.get('Ta', 0) if composition else 0
+    if ta >= DEEP_TA_THRESHOLD or alloy_id in DEEP_TA_ALLOYS:
         params['depth'] = DEEP_TA_DEPTH
-        params['amix'] = DEEP_TA_AMIX
-    elif alloy_id in AMIX_ONLY_ALLOYS:
         params['amix'] = DEEP_TA_AMIX
     return params
 

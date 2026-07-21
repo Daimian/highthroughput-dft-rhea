@@ -2,7 +2,7 @@ import os
 import pytest
 from emto_generator import parse_csv, _params_for
 from config import (EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH, DEEP_TA_AMIX,
-                    AMIX_ONLY_ALLOYS)
+                    DEEP_TA_ALLOYS)
 
 
 def test_params_for_deep_ta_gets_depth_and_amix():
@@ -18,11 +18,11 @@ def test_params_for_at_threshold_is_inclusive():
     assert below['depth'] == 0.95 and 'amix' not in below
 
 
-def test_params_for_amix_only_alloy_keeps_depth():
-    aid = next(iter(AMIX_ONLY_ALLOYS))
+def test_params_for_listed_alloy_gets_full_override():
+    aid = next(iter(DEEP_TA_ALLOYS))
     p = _params_for(aid, {'Ta': 25, 'V': 35, 'W': 40})  # Ta<30 but listed
+    assert p['depth'] == DEEP_TA_DEPTH == 0.80
     assert p['amix'] == DEEP_TA_AMIX == 0.02
-    assert p['depth'] == EMTO_PARAMS['depth'] == 0.95  # depth NOT changed
 
 
 def test_params_for_low_ta_keeps_defaults():

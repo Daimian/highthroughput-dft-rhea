@@ -42,7 +42,10 @@ def fit_eos(alloy_id, sws_list, stage_dir, atoms, concs):
 
     # nan 不会被 <=/> 比较捕获（nan 的所有比较都为假），必须显式排除，
     # 否则退化拟合会以 sws0=nan,B0=nan 的形式混进“成功”结果。
-    if math.isnan(sws0) or math.isnan(B0) or B0 <= 0 or B0 > 1000:
+    # B0 上限 350 GPa：本套难熔元素里最硬的是 Re(~365)/W(~310)，全库实际拟合最大
+    # 才 297.5（W91Re9），300~400 是一段干净空档；超过 350 的都是发散拟合（如
+    # DFT_0933 的 402、DFT_1259 的 888，R² 再高也非物理）。
+    if math.isnan(sws0) or math.isnan(B0) or B0 <= 0 or B0 > 350:
         return None, errors
 
     return (sws0, B0, e0, grun, r_squared), errors

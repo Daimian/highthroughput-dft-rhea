@@ -18,7 +18,11 @@ def test_no_errors_when_output_exists(tmp_path):
     folder = str(tmp_path / 'DFT_0001')
     jobname = 'DFT_0001_2.940000'
     _write_kfcd_prn(folder, jobname, 'TOT-PBE    -123.456  0.000  -61.728\n')
-    _write_kgrn_prn(folder, jobname, 'Converged in 50 iterations\n')
+    # Convergence is judged by the KGRN completion marker (see 748dd44), not by
+    # the absence of "not converged"; the .prn must carry that marker.
+    _write_kgrn_prn(folder, jobname,
+                    'Converged in 50 iterations\n'
+                    'KGRN calculation finished at 12:00 on 21-Jul-26\n')
     errors = check_emto_errors('DFT_0001', str(tmp_path))
     assert errors == []
 

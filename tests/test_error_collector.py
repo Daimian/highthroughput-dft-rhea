@@ -80,6 +80,23 @@ def test_outlier_needs_three_points(tmp_path):
     assert not any(e['error_type'] == 'outlier_energy' for e in errors)
 
 
+def test_outlier_spurious_low_point_flagged(tmp_path):
+    """One point converged ~0.5 Ry BELOW the EOS family. Keeping the lowest
+    cluster would keep that single wrong point; keeping the most populated
+    cluster flags it instead (regression for the bracketed-fit-fail bug)."""
+    folder = str(tmp_path / 'DFT_9995')
+    family = [(3.16, -100.482), (3.20, -100.481), (3.24, -100.481),
+              (3.28, -100.483), (3.34, -100.486), (3.36, -100.488)]
+    spurious = [(3.30, -100.965)]  # ~0.48 Ry below the family
+    for sws, e in family + spurious:
+        _finished_point(folder, 'DFT_9995', sws, e)
+    errors = check_emto_errors('DFT_9995', str(tmp_path))
+    outliers = [e for e in errors if e['error_type'] == 'outlier_energy']
+    assert len(outliers) == 1
+    assert outliers[0]['sws'] == 3.30  # the spurious low one
+    assert '-100.965' in outliers[0]['message']
+
+
 def test_outlier_bimodal_even_split_keeps_ground_cluster(tmp_path):
     """Two electronic states split the points evenly. A median would sit between
     the clusters and flag all 12; clustering must keep the lowest-energy 6 and

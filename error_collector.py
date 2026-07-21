@@ -3,11 +3,12 @@ import csv
 import re
 from collections import Counter
 
-# A point can hit the completion marker yet converge to a spurious electronic
-# state whose total energy is tens of Ry off. Real EOS energy variation across
-# the ±3% window is milli-Ry, so any point this far from the per-alloy median
-# is a wrong solution, not a physical data point.
-OUTLIER_ENERGY_RY = 1.0
+# Energy gap that separates distinct electronic states. Points of one physical
+# EOS vary by milli-Ry across the window; a point that converged to a different
+# (metastable/spurious) state sits >= ~0.4 Ry away (observed 0.4-6.7 Ry). This
+# threshold must be well above the real spread and below the smallest spurious
+# gap so the two never merge and a real EOS is never split.
+EOS_STATE_GAP_RY = 0.1
 
 
 def check_emto_errors(alloy_id, stage_dir):
@@ -102,28 +103,29 @@ def check_emto_errors(alloy_id, stage_dir):
             point_energies.append((sws, canonical))
 
     # Outlier-energy guard: a point may hit the completion marker yet converge to
-    # a metastable/spurious electronic state whose total energy is Ry above the
-    # ground state. Physical EOS variation across the window is milli-Ry, so
-    # cluster the energies: starting from the lowest, absorb points while the gap
-    # to the next stays within OUTLIER_ENERGY_RY; the first larger gap ends the
-    # ground-state cluster. Everything above it is a separate higher state and is
-    # flagged so fit_eos uses only the ground-state points. A plain median fails
-    # when the two states split the points evenly -- it lands between the clusters
-    # and flags all of them (observed wiping every point of bimodal alloys).
+    # a metastable/spurious electronic state, ABOVE or BELOW the true EOS energy
+    # (observed both: +0.4..+35 Ry and -0.4..-0.8 Ry). Cluster the energies by
+    # EOS_STATE_GAP_RY gaps and keep the most populated cluster -- the consistent
+    # EOS family -- flagging every other point. Breaking ties toward the lower
+    # cluster keeps the ground state on the rare even split. Population, not
+    # lowest energy, is the discriminant: a single spurious point can sit below
+    # the whole EOS family, so "keep the lowest cluster" would keep the wrong one.
     if len(point_energies) >= 3:
-        by_energy = sorted(e for _, e in point_energies)
-        ground_ceiling = by_energy[0]
-        for en in by_energy[1:]:
-            if en - ground_ceiling > OUTLIER_ENERGY_RY:
-                break
-            ground_ceiling = en
+        ordered = sorted(point_energies, key=lambda p: p[1])
+        clusters = [[ordered[0]]]
+        for sws, en in ordered[1:]:
+            if en - clusters[-1][-1][1] > EOS_STATE_GAP_RY:
+                clusters.append([(sws, en)])
+            else:
+                clusters[-1].append((sws, en))
+        keep = max(clusters, key=lambda c: (len(c), -c[0][1]))
+        keep_lo, keep_hi = keep[0][1], keep[-1][1]
         for sws, en in point_energies:
-            if en > ground_ceiling:
+            if en < keep_lo or en > keep_hi:
                 errors.append({'sws': sws, 'error_type': 'outlier_energy',
-                               'message': f'total energy {en:.3f} Ry is '
-                                          f'{en - by_energy[0]:+.3f} Ry above the '
-                                          f'ground-state cluster (ceiling '
-                                          f'{ground_ceiling:.3f})'})
+                               'message': f'total energy {en:.3f} Ry lies outside '
+                                          f'the main EOS cluster '
+                                          f'[{keep_lo:.3f}, {keep_hi:.3f}] Ry'})
 
     return errors
 

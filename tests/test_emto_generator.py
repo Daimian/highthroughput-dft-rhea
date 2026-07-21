@@ -1,6 +1,22 @@
 import os
 import pytest
-from emto_generator import parse_csv
+from emto_generator import parse_csv, _params_for
+from config import EMTO_PARAMS, DEPTH_OVERRIDES
+
+
+def test_params_for_applies_depth_override():
+    aid = next(iter(DEPTH_OVERRIDES))
+    assert _params_for(aid)['depth'] == DEPTH_OVERRIDES[aid] == 0.80
+
+
+def test_params_for_default_depth_unchanged():
+    assert _params_for('DFT_0001')['depth'] == EMTO_PARAMS['depth'] == 0.95
+
+
+def test_params_for_does_not_mutate_emto_params():
+    aid = next(iter(DEPTH_OVERRIDES))
+    _params_for(aid)
+    assert EMTO_PARAMS['depth'] == 0.95  # global untouched
 
 def test_parse_csv():
     csv_path = os.path.join(os.path.dirname(__file__), '..',

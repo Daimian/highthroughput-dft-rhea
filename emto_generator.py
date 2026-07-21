@@ -2,8 +2,17 @@ import os
 import csv
 import numpy as np
 import pyemto
-from config import ELEMENTS, EMTO_PARAMS
+from config import ELEMENTS, EMTO_PARAMS, DEPTH_OVERRIDES
 from efgs import calc_efgs
+
+
+def _params_for(alloy_id):
+    """EMTO_PARAMS with a per-alloy depth override applied (see
+    config.DEPTH_OVERRIDES). Returns a fresh dict so EMTO_PARAMS is untouched."""
+    params = dict(EMTO_PARAMS)
+    if alloy_id in DEPTH_OVERRIDES:
+        params['depth'] = DEPTH_OVERRIDES[alloy_id]
+    return params
 
 
 def parse_csv(csv_path):
@@ -52,7 +61,7 @@ def generate_eos_inputs(alloy_id, atoms, concs, sws_list, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws_list[0],
-        **EMTO_PARAMS,
+        **_params_for(alloy_id),
     )
 
     if composition is None:
@@ -80,7 +89,7 @@ def generate_elastic_inputs(alloy_id, atoms, concs, sws0, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws0,
-        **EMTO_PARAMS,
+        **_params_for(alloy_id),
     )
 
     if composition is not None:

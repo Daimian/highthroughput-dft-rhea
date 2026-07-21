@@ -10,7 +10,9 @@
 符号正确率 0.94）。
 """
 
-from config import EFGS_EF_COEF, EFGS_SWS_COEF
+import math
+
+from config import EFGS_EF_COEF, EFGS_SWS_COEF, EFGS_MARGIN
 
 
 def estimate_ef(composition, sws):
@@ -31,7 +33,9 @@ def estimate_ef(composition, sws):
 def calc_efgs(composition, sws):
     """该合金在该 sws 点应使用的 EFGS。
 
-    直接取预测的 E_F 作为初值（不再乘余量系数）：新模型预测的就是收敛后的真实
-    E_F，把费米搜索直接放到那里起步即可。
+    在预测 E_F 之上沿其符号方向再加一个固定余量 EFGS_MARGIN，把费米搜索的起点
+    推到 E_F 外侧：近零穿越区若直接起在预测 E_F（≈0）会分不清方向而失败，外推
+    保证至少 EFGS_MARGIN 的绝对幅度、且方向与 E_F 一致。见 config 中的说明。
     """
-    return estimate_ef(composition, sws)
+    ef = estimate_ef(composition, sws)
+    return ef + math.copysign(EFGS_MARGIN, ef)

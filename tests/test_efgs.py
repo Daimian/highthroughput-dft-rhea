@@ -1,6 +1,7 @@
+import math
 import pytest
 from efgs import estimate_ef, calc_efgs
-from config import EFGS_EF_COEF, EFGS_SWS_COEF
+from config import EFGS_EF_COEF, EFGS_SWS_COEF, EFGS_MARGIN
 
 
 def test_estimate_ef_matches_model():
@@ -12,11 +13,33 @@ def test_estimate_ef_matches_model():
     assert estimate_ef(comp, sws) == pytest.approx(expected)
 
 
-def test_calc_efgs_is_estimate_ef_no_scale():
-    """EFGS is taken directly as the predicted E_F -- no margin factor."""
+def test_calc_efgs_adds_outward_margin_negative():
+    """EFGS pushes the guess outward: negative E_F gets a more-negative EFGS."""
     comp = {'Ti': 2, 'Zr': 22, 'Hf': 26, 'Ta': 50}
     sws = 3.20
-    assert calc_efgs(comp, sws) == estimate_ef(comp, sws)
+    ef = estimate_ef(comp, sws)
+    assert ef < 0  # this Hf/Ta-rich point sits on the negative side
+    assert calc_efgs(comp, sws) == pytest.approx(ef - EFGS_MARGIN)
+
+
+def test_calc_efgs_adds_outward_margin_positive():
+    """Positive E_F gets a more-positive EFGS (pushed away from zero)."""
+    comp = {'Ta': 80, 'W': 20}  # Ta80W20, small positive E_F near the crossing
+    sws = 2.95
+    ef = estimate_ef(comp, sws)
+    assert ef > 0
+    assert calc_efgs(comp, sws) == pytest.approx(ef + EFGS_MARGIN)
+    # and the margin lifts it clear of zero into the working range
+    assert abs(calc_efgs(comp, sws)) >= EFGS_MARGIN
+
+
+def test_calc_efgs_margin_matches_sign():
+    """|EFGS| = |E_F| + MARGIN and sign(EFGS) == sign(E_F)."""
+    for comp in ({'Ti': 100}, {'Re': 100}, {'V': 60, 'Nb': 40}):
+        ef = estimate_ef(comp, 3.0)
+        efgs = calc_efgs(comp, 3.0)
+        assert math.copysign(1, efgs) == math.copysign(1, ef)
+        assert abs(efgs) == pytest.approx(abs(ef) + EFGS_MARGIN)
 
 
 def test_efgs_is_volume_dependent():

@@ -3,19 +3,24 @@ import csv
 import numpy as np
 import pyemto
 from config import (ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH,
-                    DEEP_TA_AMIX)
+                    DEEP_TA_AMIX, AMIX_ONLY_ALLOYS)
 from efgs import calc_efgs
 
 
-def _params_for(composition):
-    """EMTO_PARAMS with the deep-Ta convergence override applied when the alloy's
-    Ta content reaches DEEP_TA_THRESHOLD (see config): a smaller depth and slower
-    charge mixing AMIX, both needed to keep the SCF in the ground electronic
-    state. Returns a fresh dict so EMTO_PARAMS is untouched. composition is
+def _params_for(alloy_id, composition):
+    """EMTO_PARAMS with the deep-Ta convergence override, needed to keep the SCF
+    in the ground electronic state (see config):
+
+      * Ta >= DEEP_TA_THRESHOLD  -> smaller depth AND slower AMIX
+      * alloy in AMIX_ONLY_ALLOYS -> slower AMIX only (default depth kept)
+
+    Returns a fresh dict so EMTO_PARAMS is untouched. composition is
     {element: at%}; None keeps the defaults."""
     params = dict(EMTO_PARAMS)
     if composition and composition.get('Ta', 0) >= DEEP_TA_THRESHOLD:
         params['depth'] = DEEP_TA_DEPTH
+        params['amix'] = DEEP_TA_AMIX
+    elif alloy_id in AMIX_ONLY_ALLOYS:
         params['amix'] = DEEP_TA_AMIX
     return params
 
@@ -66,7 +71,7 @@ def generate_eos_inputs(alloy_id, atoms, concs, sws_list, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws_list[0],
-        **_params_for(composition),
+        **_params_for(alloy_id, composition),
     )
 
     if composition is None:
@@ -94,7 +99,7 @@ def generate_elastic_inputs(alloy_id, atoms, concs, sws0, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws0,
-        **_params_for(composition),
+        **_params_for(alloy_id, composition),
     )
 
     if composition is not None:

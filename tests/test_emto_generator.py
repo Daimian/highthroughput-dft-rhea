@@ -1,21 +1,29 @@
 import os
 import pytest
 from emto_generator import parse_csv, _params_for
-from config import EMTO_PARAMS, DEPTH_OVERRIDES
+from config import EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH
 
 
-def test_params_for_applies_depth_override():
-    aid = next(iter(DEPTH_OVERRIDES))
-    assert _params_for(aid)['depth'] == DEPTH_OVERRIDES[aid] == 0.80
+def test_params_for_deep_ta_gets_override():
+    assert _params_for({'Hf': 1, 'Ta': 81, 'W': 16, 'Re': 2})['depth'] \
+        == DEEP_TA_DEPTH == 0.80
 
 
-def test_params_for_default_depth_unchanged():
-    assert _params_for('DFT_0001')['depth'] == EMTO_PARAMS['depth'] == 0.95
+def test_params_for_at_threshold_is_inclusive():
+    assert _params_for({'Ta': DEEP_TA_THRESHOLD, 'W': 30})['depth'] == 0.80
+    assert _params_for({'Ta': DEEP_TA_THRESHOLD - 1, 'W': 31})['depth'] == 0.95
+
+
+def test_params_for_low_ta_keeps_default_depth():
+    assert _params_for({'W': 91, 'Re': 9})['depth'] == EMTO_PARAMS['depth'] == 0.95
+
+
+def test_params_for_none_composition_keeps_default():
+    assert _params_for(None)['depth'] == 0.95
 
 
 def test_params_for_does_not_mutate_emto_params():
-    aid = next(iter(DEPTH_OVERRIDES))
-    _params_for(aid)
+    _params_for({'Ta': 90, 'W': 10})
     assert EMTO_PARAMS['depth'] == 0.95  # global untouched
 
 def test_parse_csv():

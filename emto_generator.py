@@ -2,16 +2,18 @@ import os
 import csv
 import numpy as np
 import pyemto
-from config import ELEMENTS, EMTO_PARAMS, DEPTH_OVERRIDES
+from config import ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH
 from efgs import calc_efgs
 
 
-def _params_for(alloy_id):
-    """EMTO_PARAMS with a per-alloy depth override applied (see
-    config.DEPTH_OVERRIDES). Returns a fresh dict so EMTO_PARAMS is untouched."""
+def _params_for(composition):
+    """EMTO_PARAMS with the deep-Ta depth override applied when the alloy's Ta
+    content reaches DEEP_TA_THRESHOLD (see config). Returns a fresh dict so
+    EMTO_PARAMS is untouched. composition is {element: at%}; None (no
+    composition given) keeps the default depth."""
     params = dict(EMTO_PARAMS)
-    if alloy_id in DEPTH_OVERRIDES:
-        params['depth'] = DEPTH_OVERRIDES[alloy_id]
+    if composition and composition.get('Ta', 0) >= DEEP_TA_THRESHOLD:
+        params['depth'] = DEEP_TA_DEPTH
     return params
 
 
@@ -61,7 +63,7 @@ def generate_eos_inputs(alloy_id, atoms, concs, sws_list, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws_list[0],
-        **_params_for(alloy_id),
+        **_params_for(composition),
     )
 
     if composition is None:
@@ -89,7 +91,7 @@ def generate_elastic_inputs(alloy_id, atoms, concs, sws0, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws0,
-        **_params_for(alloy_id),
+        **_params_for(composition),
     )
 
     if composition is not None:

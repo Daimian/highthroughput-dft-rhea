@@ -34,8 +34,9 @@ def fit_eos(alloy_id, sws_list, stage_dir, atoms, concs):
             sws=sws_list[0],
             **EMTO_PARAMS,
         )
-        result = system.lattice_constants_analyze(sws=valid_sws, prn=False)
-        sws0, B0, e0, grun = result
+        result = system.lattice_constants_analyze(sws=valid_sws, prn=False,
+                                                   return_error=True)
+        sws0, B0, e0, grun, r_squared = result
     except Exception:
         return None, errors
 
@@ -44,7 +45,7 @@ def fit_eos(alloy_id, sws_list, stage_dir, atoms, concs):
     if math.isnan(sws0) or math.isnan(B0) or B0 <= 0 or B0 > 1000:
         return None, errors
 
-    return (sws0, B0, e0, grun), errors
+    return (sws0, B0, e0, grun, r_squared), errors
 
 
 def check_coarse_fit(sws0, sws_list):
@@ -143,7 +144,12 @@ def analyze_all(stage, result_csv_path, error_csv_path, retry_csv_path, alloys):
                 n_retry += 1
             continue
 
-        sws0, B0, e0, grun = result
+        sws0, B0, e0, grun, r_squared = result
+
+        # 拟合健康度：R² 是拟合优度；dSWS 是拟合出的平衡 sws0 相对采样窗口中心的
+        # 有符号距离（Bohr）—— 距离越大说明极小越贴近/超出采样范围，拟合越可疑。
+        sws_center = (min(sws_list) + max(sws_list)) / 2.0
+        dsws = sws0 - sws_center
 
         # Check if coarse fit minimum is at edge (stage 1 only)
         if retry_csv_path is not None:
@@ -155,7 +161,8 @@ def analyze_all(stage, result_csv_path, error_csv_path, retry_csv_path, alloys):
                 print(f"WARNING: {alloy_id} ({alloy['alloy']}): {retry_info['reason']}")
                 continue
 
-        _append_result(result_csv_path, alloy_id, alloy['alloy'], sws0, B0)
+        _append_result(result_csv_path, alloy_id, alloy['alloy'], sws0, B0,
+                       r_squared, dsws)
         n_success += 1
 
     print(f"\nAnalysis complete: {n_success} succeeded, {n_error} errors, {n_retry} need retry")
@@ -278,13 +285,14 @@ def _fit_failed_retry_info(alloy_dir, alloy_id, sws_list):
             'reason': f'fit_failed_recenter ({where}, min-E sws={sws_min_e:.4f})'}
 
 
-def _append_result(csv_path, alloy_id, alloy_name, sws0, B0):
+def _append_result(csv_path, alloy_id, alloy_name, sws0, B0, r_squared, dsws):
     file_exists = os.path.isfile(csv_path)
     with open(csv_path, 'a', newline='') as f:
         writer = csv.writer(f)
         if not file_exists:
-            writer.writerow(['DFT_ID', 'Alloy', 'SWS0', 'B0'])
-        writer.writerow([alloy_id, alloy_name, f'{sws0:.6f}', f'{B0:.2f}'])
+            writer.writerow(['DFT_ID', 'Alloy', 'SWS0', 'B0', 'R2', 'dSWS_center'])
+        writer.writerow([alloy_id, alloy_name, f'{sws0:.6f}', f'{B0:.2f}',
+                         f'{r_squared:.5f}', f'{dsws:+.5f}'])
 
 
 def _write_retry_entry(alloy_id, alloy_name, sws_list, retry_csv_path,

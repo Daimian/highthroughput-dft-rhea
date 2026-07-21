@@ -1,7 +1,15 @@
 import os
 import csv
 import re
+import statistics
 from collections import Counter
+
+# A point can hit the completion marker yet converge to a spurious electronic
+# state whose total energy is tens of Ry off. Real EOS energy variation across
+# the ±3% window is milli-Ry, so any point this far from the per-alloy median
+# is a wrong solution, not a physical data point.
+OUTLIER_ENERGY_RY = 1.0
+
 
 def check_emto_errors(alloy_id, stage_dir):
     folder = os.path.join(stage_dir, alloy_id)
@@ -27,6 +35,8 @@ def check_emto_errors(alloy_id, stage_dir):
                 kfcd_jobs.add(f[:-4])
 
     all_jobs = kgrn_jobs | kfcd_jobs
+
+    point_energies = []  # (sws, energy) for points with a finite total energy
 
     for job in sorted(all_jobs):
         sws = _extract_sws(job)
@@ -65,19 +75,45 @@ def check_emto_errors(alloy_id, stage_dir):
                            'message': f'No total energy found in kfcd output for {job}'})
             continue
 
-        # Check for NaN energy
+        # Check for NaN energy over every TOT- line, and record the one canonical
+        # total energy for outlier detection. KFCD prints a TOT- line per XC
+        # functional (LDA/PBE/P07/AM5/LAG); the pipeline uses PBE, so key off
+        # TOT-PBE (falling back to TOT-LDA) rather than all TOT- lines.
+        pbe_energy = None
+        lda_energy = None
         for line in content.split('\n'):
             if 'TOT-' in line:
                 parts = line.split()
                 if len(parts) >= 4:
                     try:
                         en = float(parts[3])
-                        if en != en:  # NaN check
-                            errors.append({'sws': sws, 'error_type': 'nan_energy',
-                                           'message': f'NaN energy in {job}'})
                     except ValueError:
                         errors.append({'sws': sws, 'error_type': 'nan_energy',
                                        'message': f'Unparseable energy in {job}'})
+                        continue
+                    if en != en:  # NaN check
+                        errors.append({'sws': sws, 'error_type': 'nan_energy',
+                                       'message': f'NaN energy in {job}'})
+                    elif parts[0] == 'TOT-PBE':
+                        pbe_energy = en
+                    elif parts[0] == 'TOT-LDA':
+                        lda_energy = en
+        canonical = pbe_energy if pbe_energy is not None else lda_energy
+        if canonical is not None:
+            point_energies.append((sws, canonical))
+
+    # Outlier-energy guard: a point may hit the completion marker yet converge to
+    # a spurious state tens of Ry off. Flag any point far from the per-alloy
+    # median so fit_eos excludes it instead of letting it corrupt the EOS fit.
+    # Needs >=3 points for the median to survive one outlier.
+    if len(point_energies) >= 3:
+        median = statistics.median(e for _, e in point_energies)
+        for sws, en in point_energies:
+            if abs(en - median) > OUTLIER_ENERGY_RY:
+                errors.append({'sws': sws, 'error_type': 'outlier_energy',
+                               'message': f'total energy {en:.3f} Ry deviates '
+                                          f'{en - median:+.3f} Ry from alloy '
+                                          f'median {median:.3f}'})
 
     return errors
 

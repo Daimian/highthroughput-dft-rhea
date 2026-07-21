@@ -22,6 +22,12 @@
 set -u
 
 if [ "${EMTO_SKIP_MODULES:-0}" != "1" ]; then
+    # 每个 array task 用独立的、节点本地的 Lmod 缓存目录。默认所有 task 共享
+    # ~/.cache/lmod 里同一个 spider 缓存文件，并发启动时会同时 rename 它而互相
+    # 踩踏 —— 输掉竞争的 task 报 "Unable to rename ...spiderT.lua"、module load
+    # 失败、整块在几秒内秒退（并发越高越容易中招）。$$ 保证同节点多 task 也不撞。
+    export LMOD_CACHE_DIR="${TMPDIR:-/tmp}/lmod-cache-${USER:-emto}-$$"
+
     # sbatch 用非登录 shell 执行本脚本，/etc/profile.d 不会被自动 source。
     # module 函数与 MODULEPATH 通常靠 --export=ALL 继承，但这里显式兜底。
     if ! command -v module > /dev/null 2>&1; then

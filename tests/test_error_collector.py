@@ -72,12 +72,29 @@ def test_normal_eos_spread_not_flagged(tmp_path):
 
 
 def test_outlier_needs_three_points(tmp_path):
-    """With only two points the median can't identify which one is wrong."""
+    """With only two points the guard stays quiet (too few to judge)."""
     folder = str(tmp_path / 'DFT_9997')
     for sws, e in [(3.10, -100.0), (3.14, -135.0)]:
         _finished_point(folder, 'DFT_9997', sws, e)
     errors = check_emto_errors('DFT_9997', str(tmp_path))
     assert not any(e['error_type'] == 'outlier_energy' for e in errors)
+
+
+def test_outlier_bimodal_even_split_keeps_ground_cluster(tmp_path):
+    """Two electronic states split the points evenly. A median would sit between
+    the clusters and flag all 12; clustering must keep the lowest-energy 6 and
+    flag only the higher 6 (regression for the bimodal wipe-out bug)."""
+    folder = str(tmp_path / 'DFT_9996')
+    ground = [(2.93, -20427.430), (2.97, -20427.434), (3.02, -20427.437),
+              (3.06, -20427.436), (3.09, -20427.434), (3.12, -20427.432)]
+    meta = [(2.91, -20420.747), (2.95, -20420.754), (2.98, -20420.758),
+            (3.04, -20420.761), (3.08, -20420.760), (3.11, -20420.759)]
+    for sws, e in ground + meta:
+        _finished_point(folder, 'DFT_9996', sws, e)
+    errors = check_emto_errors('DFT_9996', str(tmp_path))
+    flagged = {round(e['sws'], 2) for e in errors if e['error_type'] == 'outlier_energy'}
+    assert flagged == {2.91, 2.95, 2.98, 3.04, 3.08, 3.11}  # only the higher state
+    assert len(flagged) == 6  # NOT all 12
 
 
 def test_write_and_summarize(tmp_path, capsys):

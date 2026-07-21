@@ -1,7 +1,6 @@
 import os
 import csv
 import re
-import statistics
 from collections import Counter
 
 # A point can hit the completion marker yet converge to a spurious electronic
@@ -103,17 +102,28 @@ def check_emto_errors(alloy_id, stage_dir):
             point_energies.append((sws, canonical))
 
     # Outlier-energy guard: a point may hit the completion marker yet converge to
-    # a spurious state tens of Ry off. Flag any point far from the per-alloy
-    # median so fit_eos excludes it instead of letting it corrupt the EOS fit.
-    # Needs >=3 points for the median to survive one outlier.
+    # a metastable/spurious electronic state whose total energy is Ry above the
+    # ground state. Physical EOS variation across the window is milli-Ry, so
+    # cluster the energies: starting from the lowest, absorb points while the gap
+    # to the next stays within OUTLIER_ENERGY_RY; the first larger gap ends the
+    # ground-state cluster. Everything above it is a separate higher state and is
+    # flagged so fit_eos uses only the ground-state points. A plain median fails
+    # when the two states split the points evenly -- it lands between the clusters
+    # and flags all of them (observed wiping every point of bimodal alloys).
     if len(point_energies) >= 3:
-        median = statistics.median(e for _, e in point_energies)
+        by_energy = sorted(e for _, e in point_energies)
+        ground_ceiling = by_energy[0]
+        for en in by_energy[1:]:
+            if en - ground_ceiling > OUTLIER_ENERGY_RY:
+                break
+            ground_ceiling = en
         for sws, en in point_energies:
-            if abs(en - median) > OUTLIER_ENERGY_RY:
+            if en > ground_ceiling:
                 errors.append({'sws': sws, 'error_type': 'outlier_energy',
-                               'message': f'total energy {en:.3f} Ry deviates '
-                                          f'{en - median:+.3f} Ry from alloy '
-                                          f'median {median:.3f}'})
+                               'message': f'total energy {en:.3f} Ry is '
+                                          f'{en - by_energy[0]:+.3f} Ry above the '
+                                          f'ground-state cluster (ceiling '
+                                          f'{ground_ceiling:.3f})'})
 
     return errors
 

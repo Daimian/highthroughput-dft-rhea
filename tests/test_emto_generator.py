@@ -1,21 +1,26 @@
 import os
 import pytest
 from emto_generator import parse_csv, _params_for
-from config import EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH
+from config import EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH, DEEP_TA_AMIX
 
 
-def test_params_for_deep_ta_gets_override():
-    assert _params_for({'Hf': 1, 'Ta': 81, 'W': 16, 'Re': 2})['depth'] \
-        == DEEP_TA_DEPTH == 0.80
+def test_params_for_deep_ta_gets_depth_and_amix():
+    p = _params_for({'Hf': 1, 'Ta': 81, 'W': 16, 'Re': 2})
+    assert p['depth'] == DEEP_TA_DEPTH == 0.80
+    assert p['amix'] == DEEP_TA_AMIX == 0.02
 
 
 def test_params_for_at_threshold_is_inclusive():
-    assert _params_for({'Ta': DEEP_TA_THRESHOLD, 'W': 30})['depth'] == 0.80
-    assert _params_for({'Ta': DEEP_TA_THRESHOLD - 1, 'W': 31})['depth'] == 0.95
+    at = _params_for({'Ta': DEEP_TA_THRESHOLD, 'W': 70})       # Ta = 30
+    assert at['depth'] == 0.80 and at['amix'] == 0.02
+    below = _params_for({'Ta': DEEP_TA_THRESHOLD - 1, 'W': 71})  # Ta = 29
+    assert below['depth'] == 0.95 and 'amix' not in below
 
 
-def test_params_for_low_ta_keeps_default_depth():
-    assert _params_for({'W': 91, 'Re': 9})['depth'] == EMTO_PARAMS['depth'] == 0.95
+def test_params_for_low_ta_keeps_defaults():
+    p = _params_for({'W': 91, 'Re': 9})
+    assert p['depth'] == EMTO_PARAMS['depth'] == 0.95
+    assert 'amix' not in p  # pyemto default AMIX untouched
 
 
 def test_params_for_none_composition_keeps_default():
@@ -25,6 +30,7 @@ def test_params_for_none_composition_keeps_default():
 def test_params_for_does_not_mutate_emto_params():
     _params_for({'Ta': 90, 'W': 10})
     assert EMTO_PARAMS['depth'] == 0.95  # global untouched
+    assert 'amix' not in EMTO_PARAMS
 
 def test_parse_csv():
     csv_path = os.path.join(os.path.dirname(__file__), '..',

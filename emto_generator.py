@@ -2,18 +2,21 @@ import os
 import csv
 import numpy as np
 import pyemto
-from config import ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH
+from config import (ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH,
+                    DEEP_TA_AMIX)
 from efgs import calc_efgs
 
 
 def _params_for(composition):
-    """EMTO_PARAMS with the deep-Ta depth override applied when the alloy's Ta
-    content reaches DEEP_TA_THRESHOLD (see config). Returns a fresh dict so
-    EMTO_PARAMS is untouched. composition is {element: at%}; None (no
-    composition given) keeps the default depth."""
+    """EMTO_PARAMS with the deep-Ta convergence override applied when the alloy's
+    Ta content reaches DEEP_TA_THRESHOLD (see config): a smaller depth and slower
+    charge mixing AMIX, both needed to keep the SCF in the ground electronic
+    state. Returns a fresh dict so EMTO_PARAMS is untouched. composition is
+    {element: at%}; None keeps the defaults."""
     params = dict(EMTO_PARAMS)
     if composition and composition.get('Ta', 0) >= DEEP_TA_THRESHOLD:
         params['depth'] = DEEP_TA_DEPTH
+        params['amix'] = DEEP_TA_AMIX
     return params
 
 

@@ -104,12 +104,15 @@ def check_emto_errors(alloy_id, stage_dir):
 
     # Outlier-energy guard: a point may hit the completion marker yet converge to
     # a metastable/spurious electronic state, ABOVE or BELOW the true EOS energy
-    # (observed both: +0.4..+35 Ry and -0.4..-0.8 Ry). Cluster the energies by
-    # EOS_STATE_GAP_RY gaps and keep the most populated cluster -- the consistent
-    # EOS family -- flagging every other point. Breaking ties toward the lower
-    # cluster keeps the ground state on the rare even split. Population, not
-    # lowest energy, is the discriminant: a single spurious point can sit below
-    # the whole EOS family, so "keep the lowest cluster" would keep the wrong one.
+    # (observed both: metastable states +0.4..+24 Ry, and isolated spurious points
+    # -0.4..-0.8 Ry). Cluster the energies by EOS_STATE_GAP_RY gaps, then keep the
+    # GROUND STATE: the lowest-energy cluster that is a real state (>= MIN_STATE_PTS
+    # points). This rejects both a single spurious point sitting below the family
+    # (too few points to be a state) AND a more-populated metastable state sitting
+    # above the ground state (lower energy wins over population). Fall back to the
+    # largest cluster if none reaches the size threshold. Flag every kept-outside
+    # point so fit_eos uses only the ground-state EOS.
+    MIN_STATE_PTS = 3
     if len(point_energies) >= 3:
         ordered = sorted(point_energies, key=lambda p: p[1])
         clusters = [[ordered[0]]]
@@ -118,13 +121,16 @@ def check_emto_errors(alloy_id, stage_dir):
                 clusters.append([(sws, en)])
             else:
                 clusters[-1].append((sws, en))
-        keep = max(clusters, key=lambda c: (len(c), -c[0][1]))
+        real = [c for c in clusters if len(c) >= MIN_STATE_PTS]
+        # clusters are already in ascending energy order, so real[0] / clusters[0]
+        # with the smallest starting energy is the lowest state.
+        keep = real[0] if real else max(clusters, key=len)
         keep_lo, keep_hi = keep[0][1], keep[-1][1]
         for sws, en in point_energies:
             if en < keep_lo or en > keep_hi:
                 errors.append({'sws': sws, 'error_type': 'outlier_energy',
                                'message': f'total energy {en:.3f} Ry lies outside '
-                                          f'the main EOS cluster '
+                                          f'the ground-state cluster '
                                           f'[{keep_lo:.3f}, {keep_hi:.3f}] Ry'})
 
     return errors

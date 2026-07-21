@@ -3,6 +3,7 @@ import csv
 import numpy as np
 import pyemto
 from config import ELEMENTS, EMTO_PARAMS
+from efgs import calc_efgs
 
 
 def parse_csv(csv_path):
@@ -29,22 +30,19 @@ def parse_csv(csv_path):
     return alloys
 
 
-def _params_with_efgs(efgs):
-    """EMTO_PARAMS 加上逐合金的 efgs。efgs 为 None 时沿用 pyemto 默认值。"""
-    params = dict(EMTO_PARAMS)
-    if efgs is not None:
-        params['efgs'] = efgs
-    return params
-
-
 def generate_eos_inputs(alloy_id, atoms, concs, sws_list, stage_dir, latpath,
-                        efgs=None):
+                        composition=None):
+    """生成一个合金的 EOS 输入。
+
+    EFGS 逐点按体积设置（见 efgs.calc_efgs）：pyemto 的 batch_generate 对所有点
+    复用同一个 EFGS，所以给定 composition 时改为每个 sws 单独设 EFGS 再各自生成。
+    composition 为 None 时（仅测试/无成分信息）沿用 pyemto 默认 EFGS。
+    """
     folder = os.path.join(stage_dir, alloy_id)
     os.makedirs(folder, exist_ok=True)
 
     concs_frac = [c / 100.0 for c in concs]
     splts = [0.0] * len(atoms)
-    params = _params_with_efgs(efgs)
 
     system = pyemto.System(folder=folder)
     system.bulk(
@@ -54,19 +52,25 @@ def generate_eos_inputs(alloy_id, atoms, concs, sws_list, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws_list[0],
-        **params,
+        **EMTO_PARAMS,
     )
-    system.lattice_constants_batch_generate(sws=sws_list)
+
+    if composition is None:
+        system.lattice_constants_batch_generate(sws=sws_list)
+    else:
+        for sws in sws_list:
+            system.emto.set_values(efgs=calc_efgs(composition, sws))
+            system.lattice_constants_batch_generate(sws=[sws])
 
 
 def generate_elastic_inputs(alloy_id, atoms, concs, sws0, stage_dir, latpath,
-                            efgs=None):
+                            composition=None):
+    """生成一个合金在 sws0 处的弹性常数输入。所有畸变结构同体积，共用一个 EFGS。"""
     folder = os.path.join(stage_dir, alloy_id)
     os.makedirs(folder, exist_ok=True)
 
     concs_frac = [c / 100.0 for c in concs]
     splts = [0.0] * len(atoms)
-    params = _params_with_efgs(efgs)
 
     system = pyemto.System(folder=folder)
     system.bulk(
@@ -76,6 +80,9 @@ def generate_elastic_inputs(alloy_id, atoms, concs, sws0, stage_dir, latpath,
         concs=concs_frac,
         splts=splts,
         sws=sws0,
-        **params,
+        **EMTO_PARAMS,
     )
+
+    if composition is not None:
+        system.emto.set_values(efgs=calc_efgs(composition, sws0))
     system.elastic_constants_batch_generate(sws=sws0)

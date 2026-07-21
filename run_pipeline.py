@@ -7,7 +7,6 @@ from config import (CSV_FILE, STAGE_DIRS, RESULTS_DIR, ELEMENTS,
                     COARSE_N_POINTS, COARSE_RANGE, FINE_N_POINTS, FINE_RANGE,
                     DEFAULT_LATPATH)
 from vegard import calc_vegard_sws
-from efgs import calc_efgs
 from emto_generator import parse_csv, generate_eos_inputs, generate_elastic_inputs
 from eos_analysis import analyze_all as eos_analyze_all
 from elastic_analysis import analyze_all as elastic_analyze_all
@@ -48,7 +47,7 @@ def stage1_generate(alloys, latpath):
         sws_list = _make_sws_list(sws_guess, COARSE_N_POINTS, COARSE_RANGE)
         generate_eos_inputs(alloy['id'], alloy['atoms'], alloy['concs'],
                             sws_list, stage_dir, latpath,
-                            efgs=calc_efgs(alloy['composition']))
+                            composition=alloy['composition'])
         n_generated += 1
     print(f"Stage 1 generate: {n_generated} generated, {n_skipped} skipped (already exist)")
 
@@ -96,7 +95,7 @@ def stage1_retry(alloys, latpath):
         sws_list = _make_sws_list(new_center, COARSE_N_POINTS, COARSE_RANGE)
         generate_eos_inputs(alloy['id'], alloy['atoms'], alloy['concs'],
                             sws_list, STAGE_DIRS[1], latpath,
-                            efgs=calc_efgs(alloy['composition']))
+                            composition=alloy['composition'])
         n_generated += 1
 
     print(f"Stage 1 retry: {n_generated} re-generated with shifted SWS centers")
@@ -128,7 +127,7 @@ def stage2_generate(alloys, latpath):
         sws_list = _make_sws_list(sws0, FINE_N_POINTS, FINE_RANGE)
         generate_eos_inputs(alloy['id'], alloy['atoms'], alloy['concs'],
                             sws_list, stage_dir, latpath,
-                            efgs=calc_efgs(alloy['composition']))
+                            composition=alloy['composition'])
         n_generated += 1
 
     print(f"Stage 2 generate: {n_generated} generated, {n_skipped} skipped")
@@ -169,7 +168,7 @@ def stage3_generate(alloys, latpath):
         sws0 = sws0_map[alloy['id']]
         generate_elastic_inputs(alloy['id'], alloy['atoms'], alloy['concs'],
                                 sws0, stage_dir, latpath,
-                                efgs=calc_efgs(alloy['composition']))
+                                composition=alloy['composition'])
         n_generated += 1
 
     print(f"Stage 3 generate: {n_generated} generated, {n_skipped} skipped")

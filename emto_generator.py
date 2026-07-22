@@ -4,7 +4,7 @@ import numpy as np
 import pyemto
 from config import (ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH,
                     DEEP_TA_AMIX, DEEP_TA_ALLOYS, AMIX_ONLY_ALLOYS,
-                    MIXED_HF_DEPTH, MIXED_HF_ALLOYS, HF_D80_ALLOYS)
+                    MIXED_HF_DEPTH, MIXED_HF_ALLOYS, HF_D80_ALLOYS, D70_ALLOYS)
 from efgs import calc_efgs
 
 
@@ -26,7 +26,13 @@ def _params_for(alloy_id, composition):
     EMTO_PARAMS is untouched. composition is {element: at%}; None keeps defaults."""
     params = dict(EMTO_PARAMS)
     ta = composition.get('Ta', 0) if composition else 0
-    if ta >= DEEP_TA_THRESHOLD or alloy_id in DEEP_TA_ALLOYS:
+    if alloy_id in D70_ALLOYS:
+        # hardest Ta+V corner: even depth0.80 distortions crash point-by-point;
+        # depth0.70 is the shallowest tier (amix is irrelevant here). Mixed: keep
+        # the existing stage2 sws0/B0, only C' is at depth0.70.
+        params['depth'] = 0.70
+        params['amix'] = DEEP_TA_AMIX
+    elif ta >= DEEP_TA_THRESHOLD or alloy_id in DEEP_TA_ALLOYS:
         params['depth'] = DEEP_TA_DEPTH
         params['amix'] = DEEP_TA_AMIX
     elif alloy_id in HF_D80_ALLOYS:

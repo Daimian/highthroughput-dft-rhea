@@ -63,11 +63,19 @@ def test_override_base_tiers_disjoint():
     assert not (MIXED_HF_ALLOYS & AMIX_ONLY_ALLOYS)
 
 
+def test_d70_tier_wins_and_uses_depth070():
+    from config import D70_ALLOYS
+    for aid in list(D70_ALLOYS)[:5]:
+        p = _params_for(aid, {'V': 40, 'Ta': 40, 'Mo': 5, 'W': 15})
+        assert p['depth'] == 0.70 and p['amix'] == 0.02  # top precedence
+
+
 def test_hf_d80_fallback_wins_and_uses_depth080():
-    from config import HF_D80_ALLOYS
-    # HF_D80 is a fallback overlay on MIXED_HF/AMIX_ONLY: it must win (depth0.80).
+    from config import HF_D80_ALLOYS, D70_ALLOYS
+    # HF_D80 is a fallback overlay on MIXED_HF/AMIX_ONLY: it must win (depth0.80),
+    # except where D70 (top tier) overrides it further to 0.70.
     assert HF_D80_ALLOYS & (MIXED_HF_ALLOYS | AMIX_ONLY_ALLOYS)  # overlaps by design
-    for aid in list(HF_D80_ALLOYS)[:5]:
+    for aid in list(HF_D80_ALLOYS - D70_ALLOYS)[:5]:
         p = _params_for(aid, {'Hf': 40, 'Ta': 20, 'W': 40})
         assert p['depth'] == 0.80 and p['amix'] == 0.02
 

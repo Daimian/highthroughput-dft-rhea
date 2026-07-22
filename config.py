@@ -96,6 +96,19 @@ HF_D80_ALLOYS = {
     'DFT_1283', 'DFT_1354', 'DFT_1586',
 }
 
+# 富 Ta+V 角(及少数 Hf)在 depth0.80 仍逐点早崩：2x2 交叉实测(DFT_0428 V40Ta40)
+# depth0.80→0/12 全崩、depth0.70→12/12 单基态 C'=86 R²=1.000，且 amix0.01 与 0.02 逐位
+# 相同 —— **depth 是唯一杠杆,amix 无关**。故这批(下方 23 个,全库最后未拟合的合金)stage3
+# 畸变退到 depth 0.70 + AMIX 0.02。全部走混合方案：**沿用现有 stage2 的 sws0/B0**(不重算
+# stage2)，只把畸变在 depth0.70 处的正确体积上重跑 → C'@0.70 + B0@现有。含 Hf 的 B0 是
+# depth0.95、无 Hf 的是 depth0.80，均保持不变。**不要**重跑它们的 stage2 --generate。
+D70_ALLOYS = {
+    'DFT_0066', 'DFT_0198', 'DFT_0214', 'DFT_0420', 'DFT_0425', 'DFT_0428',
+    'DFT_0472', 'DFT_0507', 'DFT_0508', 'DFT_0537', 'DFT_0723', 'DFT_0924',
+    'DFT_0955', 'DFT_1009', 'DFT_1053', 'DFT_1060', 'DFT_1100', 'DFT_1117',
+    'DFT_1203', 'DFT_1354', 'DFT_1415', 'DFT_1488', 'DFT_1507',
+}
+
 MIXED_HF_DEPTH = 0.90
 MIXED_HF_ALLOYS = {
     'DFT_0067', 'DFT_0070', 'DFT_0118', 'DFT_0130', 'DFT_0141', 'DFT_0218',

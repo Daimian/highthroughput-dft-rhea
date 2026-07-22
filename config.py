@@ -87,6 +87,21 @@ EFGS_SWS_COEF = -0.5682
 # 足够推力；同时加法对本就收敛的大 |E_F| 点更温和。
 EFGS_MARGIN = 0.05
 
+# --- Stage3 弹性畸变拟合的离群点守卫 ------------------------------------
+# 每个畸变模式采 6 个应变点。偶发某一点 KFCD 落进伪电子态，其能量比干净抛物线高
+# 10^3~10^5 meV（实测 bcco3 高达 283000 meV）。pyemto 的 elastic_constants_analyze
+# 对 6 点做朴素最小二乘，一个坏点就把 R² 拖到 0。守卫分两步剔除伪点：
+#   1. 绝对间隔：真畸变能量在 delta<=0.05 内 < ~0.01 Ry(最硬的 W 也仅 86 meV)，故凡比
+#      曲线最低点高出 ELASTIC_OUTLIER_GAP_RY 的点必是伪电子态，直接剔。
+#   2. 统计离群：再迭代剔除残差远超同伴(> FACTOR*中位, 且 > FLOOR)的中等离群点。
+# 剔完后 **无条件接受**拟合(只要剩 >= ELASTIC_MIN_PTS 点)——R² 低往往只是 c'≈0 的
+# 近失稳软合金抛物线本就平坦(同 stage2 浅阱：不能用 R² 判物理性)，其小/负 c' 是真实
+# 结果，Born 稳定性由 c' 的符号判断。R² 仅作诊断列输出，不作接受门槛。
+ELASTIC_MIN_PTS = 4            # 至少保留这么多点才拟合（<此值判为需重算/无输出）
+ELASTIC_OUTLIER_GAP_RY = 0.05  # 高出曲线最低点这么多(Ry)即判伪电子态 (~680 meV)
+ELASTIC_OUTLIER_FACTOR = 8.0   # 残差 > 此倍数 x 同伴残差中位 才算统计离群
+ELASTIC_OUTLIER_FLOOR_RY = 0.002  # 且残差需 > 此绝对值(~27 meV)才剔，护住干净平坦曲线
+
 CSV_FILE = '20260718-refractory-hea-compositions-1600-highthroughput-dft.csv'
 
 STAGE_DIRS = {

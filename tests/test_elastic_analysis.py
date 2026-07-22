@@ -1,5 +1,64 @@
+import math
+import numpy as np
 import pytest
-from elastic_analysis import calc_mechanical_properties, parse_elastic_output
+from elastic_analysis import (calc_mechanical_properties, parse_elastic_output,
+                              _robust_distortion_fit)
+from pyemto.EOS.EOS import EOS
+
+DELTAS = np.linspace(0.0, 0.05, 6)
+
+
+def _eos():
+    return EOS(name='t', xc='PBE', method='morse', units='bohr')
+
+
+def _parabola(a2, e0=-100.0):
+    return e0 + a2 * DELTAS ** 2
+
+
+def test_guard_clean_curve_drops_nothing():
+    y = _parabola(2.0)
+    a2, rsq, kept, dropped = _robust_distortion_fit(_eos(), DELTAS, y)
+    assert dropped == 0 and kept == 6
+    assert a2 == pytest.approx(2.0, rel=1e-3)
+
+
+def test_guard_removes_gross_spurious_point():
+    # one point flips to a spurious electronic state ~20 Ry up
+    y = _parabola(2.0)
+    y[3] += 20.0
+    a2, rsq, kept, dropped = _robust_distortion_fit(_eos(), DELTAS, y)
+    assert dropped == 1 and kept == 5
+    assert a2 == pytest.approx(2.0, rel=1e-3)
+
+
+def test_guard_accepts_flat_near_instability_curve():
+    # c'~0: essentially flat well, low R^2 but NOT an outlier -> keep all 6
+    y = _parabola(0.02)
+    a2, rsq, kept, dropped = _robust_distortion_fit(_eos(), DELTAS, y)
+    assert dropped == 0 and kept == 6  # never rejected for low R^2 alone
+
+
+def test_guard_too_few_points_returns_none():
+    assert _robust_distortion_fit(_eos(), DELTAS[:3], _parabola(2.0)[:3]) is None
+
+
+def test_mechanical_properties_unstable_cprime_never_complex():
+    # c' < 0 (C11 < C12), Born-unstable: every property must be a real float
+    # (never complex), and B/Cauchy stay well-defined.
+    props = calc_mechanical_properties(140.0, 155.0, 71.0)
+    for k, v in props.items():
+        assert isinstance(v, float), f"{k} is {type(v)}"
+    assert props['B'] == pytest.approx((140 + 2 * 155) / 3.0)
+    assert props['Cauchy'] == pytest.approx(155 - 71)
+
+
+def test_mechanical_properties_negative_shear_gives_nan_hv():
+    # Force G_VRH <= 0 (deeply unstable): Hv would go complex -> must be NaN.
+    props = calc_mechanical_properties(100.0, 150.0, 1.0)
+    assert not isinstance(props['Hv'], complex)
+    if not (props['G_VRH'] > 0):
+        assert math.isnan(props['Hv'])
 
 
 def test_mechanical_properties_pure_w():

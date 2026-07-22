@@ -49,17 +49,27 @@ def test_params_for_full_override_beats_amix_only():
 
 
 def test_params_for_mixed_hf_uses_depth_090():
-    aid = next(iter(MIXED_HF_ALLOYS))
+    from config import HF_D80_ALLOYS
+    aid = next(iter(MIXED_HF_ALLOYS - HF_D80_ALLOYS))  # one that stayed at 0.90
     p = _params_for(aid, {'Hf': 40, 'Nb': 25, 'Ta': 25, 'W': 10})  # Ta<30
     assert p['depth'] == MIXED_HF_DEPTH == 0.90  # deepest that converges distortions
     assert p['amix'] == DEEP_TA_AMIX == 0.02
 
 
-def test_override_lists_are_disjoint():
-    # each alloy gets exactly one convergence tier
+def test_override_base_tiers_disjoint():
+    # the three base tiers partition the alloys
     assert not (DEEP_TA_ALLOYS & MIXED_HF_ALLOYS)
     assert not (DEEP_TA_ALLOYS & AMIX_ONLY_ALLOYS)
     assert not (MIXED_HF_ALLOYS & AMIX_ONLY_ALLOYS)
+
+
+def test_hf_d80_fallback_wins_and_uses_depth080():
+    from config import HF_D80_ALLOYS
+    # HF_D80 is a fallback overlay on MIXED_HF/AMIX_ONLY: it must win (depth0.80).
+    assert HF_D80_ALLOYS & (MIXED_HF_ALLOYS | AMIX_ONLY_ALLOYS)  # overlaps by design
+    for aid in list(HF_D80_ALLOYS)[:5]:
+        p = _params_for(aid, {'Hf': 40, 'Ta': 20, 'W': 40})
+        assert p['depth'] == 0.80 and p['amix'] == 0.02
 
 
 def test_params_for_none_composition_keeps_default():

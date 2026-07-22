@@ -22,10 +22,13 @@
 set -u
 
 if [ "${EMTO_SKIP_MODULES:-0}" != "1" ]; then
-    # 每个 array task 用独立的、节点本地的 Lmod 缓存目录。默认所有 task 共享
-    # ~/.cache/lmod 里同一个 spider 缓存文件，并发启动时会同时 rename 它而互相
-    # 踩踏 —— 输掉竞争的 task 报 "Unable to rename ...spiderT.lua"、module load
-    # 失败、整块在几秒内秒退（并发越高越容易中招）。$$ 保证同节点多 task 也不撞。
+    # 并发的 array task 共享 NFS 上的 ~/.cache/lmod 同一个 spider 缓存文件，
+    # 缓存过期时会同时重建并 rename 它而互相踩踏 —— 输掉竞争的 task 报
+    # "Unable to rename ...spiderT.lua"、module load 失败、整块几秒内秒退。
+    # LMOD_CACHE_DIR 事后再 export 挡不住：--export=ALL 让登录 shell 的 Lmod 已用默认
+    # 缓存目录初始化过了。故直接 LMOD_IGNORE_CACHE=1 —— 完全跳过缓存读/写(不再 rename)，
+    # 每个 task 自己解析模块树，无共享文件可抢。代价是每次 module 解析略慢(可忽略)。
+    export LMOD_IGNORE_CACHE=1
     export LMOD_CACHE_DIR="${TMPDIR:-/tmp}/lmod-cache-${USER:-emto}-$$"
 
     # sbatch 用非登录 shell 执行本脚本，/etc/profile.d 不会被自动 source。

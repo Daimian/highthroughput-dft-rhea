@@ -4,7 +4,7 @@ import numpy as np
 import pyemto
 from config import (ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH,
                     DEEP_TA_AMIX, DEEP_TA_ALLOYS, AMIX_ONLY_ALLOYS,
-                    MIXED_HF_DEPTH, MIXED_HF_ALLOYS)
+                    MIXED_HF_DEPTH, MIXED_HF_ALLOYS, HF_D80_ALLOYS)
 from efgs import calc_efgs
 
 
@@ -27,6 +27,10 @@ def _params_for(alloy_id, composition):
     params = dict(EMTO_PARAMS)
     ta = composition.get('Ta', 0) if composition else 0
     if ta >= DEEP_TA_THRESHOLD or alloy_id in DEEP_TA_ALLOYS:
+        params['depth'] = DEEP_TA_DEPTH
+        params['amix'] = DEEP_TA_AMIX
+    elif alloy_id in HF_D80_ALLOYS:
+        # Hf alloys whose distortions crash even at depth0.90 -> fall back to 0.80.
         params['depth'] = DEEP_TA_DEPTH
         params['amix'] = DEEP_TA_AMIX
     elif alloy_id in MIXED_HF_ALLOYS:

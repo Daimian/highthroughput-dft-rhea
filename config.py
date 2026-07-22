@@ -82,6 +82,20 @@ DEEP_TA_ALLOYS = {
 #     C'=39 R²=0.9998、与 EOS 基态自洽 Δ0.7mRy。见 docs/stage3-report.md。
 # 注意：_params_for 是 stage 无关的，对这 60 个含 Hf 合金**不要**重跑 stage2 --generate
 # （会错误地产出 depth<=0.90 的 EOS）；它们的 depth0.95 B0 已固化在 stage2 结果 CSV 里。
+# depth0.90 的"最深可收敛"是逐合金的：实测约一半 Hf 合金畸变在 depth0.90 仍前 1-3 步
+# 早崩（如 DFT_0448 全 bcco 停在 iter 1-3），对它们最深可收敛 depth 是 0.80 而非 0.90。
+# 这批（下方 33 个 = depth0.90 仍失败的 Hf + 少数无 Ta 但 depth0.95 崩的含 Hf 合金）退到
+# depth 0.80 做 stage3 畸变，仍保 depth0.95 的 stage2 B0（同混合方案，C'@0.80 + B0@0.95，
+# depth 失配比 0.90 略大但 0.90 根本不收敛）。同样**不要**重跑它们的 stage2 --generate。
+HF_D80_ALLOYS = {
+    'DFT_0118', 'DFT_0218', 'DFT_0220', 'DFT_0265', 'DFT_0279', 'DFT_0332',
+    'DFT_0448', 'DFT_0460', 'DFT_0461', 'DFT_0476', 'DFT_0485', 'DFT_0508',
+    'DFT_0535', 'DFT_0537', 'DFT_0579', 'DFT_0614', 'DFT_0679', 'DFT_0700',
+    'DFT_0747', 'DFT_0818', 'DFT_0871', 'DFT_0874', 'DFT_0950', 'DFT_1007',
+    'DFT_1060', 'DFT_1063', 'DFT_1092', 'DFT_1117', 'DFT_1217', 'DFT_1271',
+    'DFT_1283', 'DFT_1354', 'DFT_1586',
+}
+
 MIXED_HF_DEPTH = 0.90
 MIXED_HF_ALLOYS = {
     'DFT_0067', 'DFT_0070', 'DFT_0118', 'DFT_0130', 'DFT_0141', 'DFT_0218',

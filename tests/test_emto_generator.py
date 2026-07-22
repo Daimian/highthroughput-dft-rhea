@@ -70,6 +70,17 @@ def test_d70_tier_wins_and_uses_depth070():
         assert p['depth'] == 0.70 and p['amix'] == 0.02  # top precedence
 
 
+def test_unresolved_disjoint_from_d70_and_falls_back_to_080():
+    from config import D70_ALLOYS, UNRESOLVED_ALLOYS
+    assert len(D70_ALLOYS) == 18
+    assert len(UNRESOLVED_ALLOYS) == 5
+    assert not (D70_ALLOYS & UNRESOLVED_ALLOYS)  # not depth0.70 anymore
+    # UNRESOLVED alloys are documentation-only: they fall back to a 0.80 tier.
+    for aid in UNRESOLVED_ALLOYS:
+        p = _params_for(aid, {'Ta': 90, 'W': 5, 'Re': 5})  # e.g. DFT_0198
+        assert p['depth'] == 0.80
+
+
 def test_hf_d80_fallback_wins_and_uses_depth080():
     from config import HF_D80_ALLOYS, D70_ALLOYS
     # HF_D80 is a fallback overlay on MIXED_HF/AMIX_ONLY: it must win (depth0.80),

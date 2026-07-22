@@ -3,27 +3,34 @@ import csv
 import numpy as np
 import pyemto
 from config import (ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH,
-                    DEEP_TA_AMIX, DEEP_TA_ALLOYS, AMIX_ONLY_ALLOYS)
+                    DEEP_TA_AMIX, DEEP_TA_ALLOYS, AMIX_ONLY_ALLOYS,
+                    MIXED_HF_DEPTH, MIXED_HF_ALLOYS)
 from efgs import calc_efgs
 
 
 def _params_for(alloy_id, composition):
     """EMTO_PARAMS with a convergence override, needed to keep the SCF in the
-    ground electronic state. Two tiers:
+    ground electronic state. Three tiers (checked in order):
 
-    - full override (smaller depth 0.80 + slower AMIX 0.02): Ta >=
-      DEEP_TA_THRESHOLD, or listed in DEEP_TA_ALLOYS. depth is NOT energy-neutral
-      (it shifts c'), so any alloy needing it must use depth 0.80 in every stage.
-    - AMIX-only (AMIX 0.02, depth untouched): listed in AMIX_ONLY_ALLOYS. AMIX is
-      energy-neutral (only selects the electronic basin), so these keep the
-      default depth 0.95 and their existing depth-0.95 stage2 B0 stays valid.
+    - full override (depth 0.80 + AMIX 0.02): Ta >= DEEP_TA_THRESHOLD or listed
+      in DEEP_TA_ALLOYS (Ta-rich, and no-Hf Ta 1-29). depth is NOT energy-neutral
+      (it shifts c'), so these use depth 0.80 in every stage (stage2 recomputed).
+    - mixed-depth Hf (depth 0.90 + AMIX 0.02): listed in MIXED_HF_ALLOYS (Hf-bearing
+      Ta 1-29). depth 0.90 is the deepest that still converges the symmetry-broken
+      distortions; their depth-0.95 stage2 B0 is KEPT (do NOT regenerate stage2 --
+      depth<=0.90 corrupts the Hf EOS). So c' @0.90 pairs with B0 @0.95.
+    - AMIX-only (AMIX 0.02, depth 0.95): listed in AMIX_ONLY_ALLOYS (no-Ta). AMIX is
+      energy-neutral, so these keep depth 0.95 and their depth-0.95 stage2 B0.
 
-    Full override wins if an alloy is in both. Returns a fresh dict so EMTO_PARAMS
-    is untouched. composition is {element: at%}; None keeps the defaults."""
+    Earlier tiers win if an alloy is in more than one list. Returns a fresh dict so
+    EMTO_PARAMS is untouched. composition is {element: at%}; None keeps defaults."""
     params = dict(EMTO_PARAMS)
     ta = composition.get('Ta', 0) if composition else 0
     if ta >= DEEP_TA_THRESHOLD or alloy_id in DEEP_TA_ALLOYS:
         params['depth'] = DEEP_TA_DEPTH
+        params['amix'] = DEEP_TA_AMIX
+    elif alloy_id in MIXED_HF_ALLOYS:
+        params['depth'] = MIXED_HF_DEPTH
         params['amix'] = DEEP_TA_AMIX
     elif alloy_id in AMIX_ONLY_ALLOYS:
         params['amix'] = DEEP_TA_AMIX

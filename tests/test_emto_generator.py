@@ -2,7 +2,8 @@ import os
 import pytest
 from emto_generator import parse_csv, _params_for
 from config import (EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH, DEEP_TA_AMIX,
-                    DEEP_TA_ALLOYS, AMIX_ONLY_ALLOYS)
+                    DEEP_TA_ALLOYS, AMIX_ONLY_ALLOYS, MIXED_HF_DEPTH,
+                    MIXED_HF_ALLOYS)
 
 
 def test_params_for_deep_ta_gets_depth_and_amix():
@@ -45,6 +46,20 @@ def test_params_for_full_override_beats_amix_only():
     p = _params_for(aid, {'Ta': 5, 'V': 35, 'W': 60})
     assert p['depth'] == DEEP_TA_DEPTH == 0.80
     assert p['amix'] == DEEP_TA_AMIX == 0.02
+
+
+def test_params_for_mixed_hf_uses_depth_090():
+    aid = next(iter(MIXED_HF_ALLOYS))
+    p = _params_for(aid, {'Hf': 40, 'Nb': 25, 'Ta': 25, 'W': 10})  # Ta<30
+    assert p['depth'] == MIXED_HF_DEPTH == 0.90  # deepest that converges distortions
+    assert p['amix'] == DEEP_TA_AMIX == 0.02
+
+
+def test_override_lists_are_disjoint():
+    # each alloy gets exactly one convergence tier
+    assert not (DEEP_TA_ALLOYS & MIXED_HF_ALLOYS)
+    assert not (DEEP_TA_ALLOYS & AMIX_ONLY_ALLOYS)
+    assert not (MIXED_HF_ALLOYS & AMIX_ONLY_ALLOYS)
 
 
 def test_params_for_none_composition_keeps_default():

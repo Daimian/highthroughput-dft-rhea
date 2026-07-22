@@ -52,42 +52,49 @@ DEEP_TA_AMIX = 0.02
 #   1009/1245/0270 —— 陷入亚稳多态，仅降 AMIX 不够、需连 depth 一起下调（均 Nb 富集）。
 #   0334/0791/0243/0497/1366/0779 —— 精细拟合能量有近简并散点（BM 的 B' 爆到 ±几十、
 #     Morse R² 只有 0.64~0.87），多为 Nb/Mo/W 富集；用慢混合+小 depth 消掉散点。
-#   STAGE3_TA_BATCH（下方 95 个，Ta 1-29）—— stage3 弹性畸变破坏立方对称，比 EOS 更难
-#     收敛：这些含 Ta 合金 EOS(对称)在 depth 0.95 下收敛正常，但畸变(破缺)在 depth 0.95
-#     会前 1-5 步就崩（实测 DFT_0218/1204：depth0.95 仅 3-8/12 收敛；depth0.80 则 12/12）。
-#     故 stage3 畸变一律用 depth 0.80 + AMIX 0.02。depth 非能量中性(改 C')。
-#
-#     ⚠️ depth 与含 Hf 合金的 EOS 互斥（实测）：depth 0.80 会把富 Hf 合金的 EOS 收敛到伪
-#     的膨胀软态（Hf 4f/semicore 需深围道；实测 Hf>=40 的 sws0 外推出窗口、B0 腰斩，如
-#     DFT_0070 Hf51 B0 170->65）。故本批按 Hf 分两路，且 depth 是 STAGE 相关的：
-#       - 无 Hf 的 35 个：depth 0.80 贯穿 stage2+stage3（EOS 已在 depth0.80 重算、自洽）。
-#       - 含 Hf 的 60 个：stage2 的 B0/sws0 保留 depth 0.95（正确 EOS，见 results CSV），
-#         仅 stage3 畸变用 depth 0.80（在 depth0.95 的 sws0 处）——即 B0@0.95 + C'@0.80 的
-#         混合，C' 带 depth 不一致注脚（条件 A 已验证物理合理，见 docs/stage3-report.md）。
-#     注意：_params_for 是 stage 无关的，对这 60 个含 Hf 合金**不要**重跑 stage2 --generate
-#     （会错误地产出 depth0.80 的 EOS）；它们的 depth0.95 B0 已固化在 stage2 结果 CSV 里。
-_STAGE3_TA_BATCH = {
-    'DFT_0067', 'DFT_0070', 'DFT_0080', 'DFT_0095', 'DFT_0100', 'DFT_0108',
-    'DFT_0118', 'DFT_0130', 'DFT_0141', 'DFT_0218', 'DFT_0220', 'DFT_0226',
-    'DFT_0228', 'DFT_0253', 'DFT_0255', 'DFT_0265', 'DFT_0267', 'DFT_0279',
-    'DFT_0296', 'DFT_0329', 'DFT_0332', 'DFT_0349', 'DFT_0350', 'DFT_0357',
-    'DFT_0359', 'DFT_0368', 'DFT_0372', 'DFT_0395', 'DFT_0415', 'DFT_0448',
-    'DFT_0460', 'DFT_0461', 'DFT_0476', 'DFT_0485', 'DFT_0490', 'DFT_0504',
-    'DFT_0506', 'DFT_0514', 'DFT_0534', 'DFT_0535', 'DFT_0537', 'DFT_0552',
-    'DFT_0579', 'DFT_0614', 'DFT_0619', 'DFT_0622', 'DFT_0634', 'DFT_0653',
-    'DFT_0654', 'DFT_0660', 'DFT_0661', 'DFT_0664', 'DFT_0679', 'DFT_0696',
-    'DFT_0700', 'DFT_0747', 'DFT_0777', 'DFT_0818', 'DFT_0871', 'DFT_0889',
-    'DFT_0902', 'DFT_0903', 'DFT_0950', 'DFT_0958', 'DFT_0987', 'DFT_1001',
-    'DFT_1007', 'DFT_1029', 'DFT_1060', 'DFT_1063', 'DFT_1080', 'DFT_1085',
-    'DFT_1092', 'DFT_1109', 'DFT_1117', 'DFT_1204', 'DFT_1217', 'DFT_1271',
-    'DFT_1273', 'DFT_1283', 'DFT_1286', 'DFT_1287', 'DFT_1318', 'DFT_1341',
-    'DFT_1350', 'DFT_1354', 'DFT_1382', 'DFT_1391', 'DFT_1398', 'DFT_1466',
-    'DFT_1472', 'DFT_1479', 'DFT_1571', 'DFT_1580', 'DFT_1586',
+#   _STAGE3_NOHF_BATCH（下方 35 个，Ta 1-29、无 Hf）—— stage3 弹性畸变破坏立方对称，比
+#     EOS 更难收敛：这些含 Ta 合金 EOS(对称)在 depth 0.95 下收敛正常，但畸变(破缺)在
+#     depth 0.95 会前 1-5 步就崩（实测 DFT_0218/1204：depth0.95 仅 3-8/12；depth0.80 则
+#     12/12）。无 Hf 故 depth 0.80 贯穿 stage2+stage3（EOS 已在 depth0.80 重算、自洽）。
+#     depth 非能量中性(改 C')。
+_STAGE3_NOHF_BATCH = {
+    'DFT_0080', 'DFT_0095', 'DFT_0100', 'DFT_0108', 'DFT_0253', 'DFT_0255',
+    'DFT_0267', 'DFT_0329', 'DFT_0350', 'DFT_0359', 'DFT_0368', 'DFT_0415',
+    'DFT_0634', 'DFT_0653', 'DFT_0654', 'DFT_0696', 'DFT_0777', 'DFT_0889',
+    'DFT_0902', 'DFT_0903', 'DFT_0958', 'DFT_1001', 'DFT_1029', 'DFT_1080',
+    'DFT_1085', 'DFT_1109', 'DFT_1273', 'DFT_1286', 'DFT_1287', 'DFT_1341',
+    'DFT_1382', 'DFT_1398', 'DFT_1472', 'DFT_1479', 'DFT_1571',
 }
 DEEP_TA_ALLOYS = {
     'DFT_1009', 'DFT_1245', 'DFT_0270',
     'DFT_0334', 'DFT_0791', 'DFT_0243', 'DFT_0497', 'DFT_1366', 'DFT_0779',
-} | _STAGE3_TA_BATCH
+} | _STAGE3_NOHF_BATCH
+
+# ⚠️ 含 Hf 的 60 个（Ta 1-29）—— depth 与含 Hf 合金的 EOS 互斥（实测）：depth<=0.90 会把
+# 富 Hf 合金的 EOS 收敛到伪的膨胀软态（Hf 4f/semicore 需深围道；实测 depth0.9 的 DFT_0506
+# EOS 单调外推出窗口、depth0.8 的 Hf51 DFT_0070 B0 170->65）；但畸变在 depth>=0.95 会崩/卡
+# 激发态。两阈值都卡在 0.90-0.95 之间且不重叠 → 无单一自洽 depth，采**精化混合方案**：
+#   - stage2 的 B0/sws0 保留 depth 0.95（正确 EOS，见 results CSV）；
+#   - stage3 畸变用**能收敛的最深 depth = 0.90**（比 0.80 更接近 0.95，最小化 depth 失配），
+#     在 depth0.95 的 sws0 处 —— 即 B0@0.95 + C'@0.90 的混合。物理依据：半芯的病在体积项，
+#     B0 从深 depth 取；剪切在定(正确)体积下半芯抵消，C' 从浅 depth 取无妨（残留为价 d 带
+#     的小 depth 漂移，用 0.90 最小化）。实测 DFT_0506(Hf40Ta25) depth0.9：12 点单一基态、
+#     C'=39 R²=0.9998、与 EOS 基态自洽 Δ0.7mRy。见 docs/stage3-report.md。
+# 注意：_params_for 是 stage 无关的，对这 60 个含 Hf 合金**不要**重跑 stage2 --generate
+# （会错误地产出 depth<=0.90 的 EOS）；它们的 depth0.95 B0 已固化在 stage2 结果 CSV 里。
+MIXED_HF_DEPTH = 0.90
+MIXED_HF_ALLOYS = {
+    'DFT_0067', 'DFT_0070', 'DFT_0118', 'DFT_0130', 'DFT_0141', 'DFT_0218',
+    'DFT_0220', 'DFT_0226', 'DFT_0228', 'DFT_0265', 'DFT_0279', 'DFT_0296',
+    'DFT_0332', 'DFT_0349', 'DFT_0357', 'DFT_0372', 'DFT_0395', 'DFT_0448',
+    'DFT_0460', 'DFT_0461', 'DFT_0476', 'DFT_0485', 'DFT_0490', 'DFT_0504',
+    'DFT_0506', 'DFT_0514', 'DFT_0534', 'DFT_0535', 'DFT_0537', 'DFT_0552',
+    'DFT_0579', 'DFT_0614', 'DFT_0619', 'DFT_0622', 'DFT_0660', 'DFT_0661',
+    'DFT_0664', 'DFT_0679', 'DFT_0700', 'DFT_0747', 'DFT_0818', 'DFT_0871',
+    'DFT_0950', 'DFT_0987', 'DFT_1007', 'DFT_1060', 'DFT_1063', 'DFT_1092',
+    'DFT_1117', 'DFT_1204', 'DFT_1217', 'DFT_1271', 'DFT_1283', 'DFT_1318',
+    'DFT_1350', 'DFT_1354', 'DFT_1391', 'DFT_1466', 'DFT_1580', 'DFT_1586',
+}
 
 # 仅降 AMIX（depth 保持 0.95）覆盖：无 Ta 的富 Hf/V 合金 stage3 畸变会散进伪电子态，但
 # depth 0.95 本身收敛正常（不像含 Ta 会早崩）。AMIX=0.02 单独即可把畸变点钉回基态，且

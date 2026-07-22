@@ -70,15 +70,23 @@ def test_d70_tier_wins_and_uses_depth070():
         assert p['depth'] == 0.70 and p['amix'] == 0.02  # top precedence
 
 
-def test_unresolved_disjoint_from_d70_and_falls_back_to_080():
-    from config import D70_ALLOYS, UNRESOLVED_ALLOYS
-    assert len(D70_ALLOYS) == 18
-    assert len(UNRESOLVED_ALLOYS) == 5
-    assert not (D70_ALLOYS & UNRESOLVED_ALLOYS)  # not depth0.70 anymore
-    # UNRESOLVED alloys are documentation-only: they fall back to a 0.80 tier.
-    for aid in UNRESOLVED_ALLOYS:
-        p = _params_for(aid, {'Ta': 90, 'W': 5, 'Re': 5})  # e.g. DFT_0198
-        assert p['depth'] == 0.80
+def test_hf_scatter_a01_uses_amix001():
+    from config import HF_SCATTER_A01_ALLOYS, D70_ALLOYS
+    assert len(HF_SCATTER_A01_ALLOYS) == 4
+    assert not (HF_SCATTER_A01_ALLOYS & D70_ALLOYS)  # D70 has higher precedence
+    for aid in HF_SCATTER_A01_ALLOYS:
+        p = _params_for(aid, {'Hf': 40, 'Ta': 30, 'W': 30})  # Ta>=30 but amix0.01 wins
+        assert p['depth'] == 0.80 and p['amix'] == 0.01
+
+
+def test_iex_override_applied_on_top_of_tier():
+    from config import IEX_OVERRIDE
+    assert IEX_OVERRIDE['DFT_0198'] == 3
+    p = _params_for('DFT_0198', {'Hf': 2, 'Ta': 90, 'W': 3, 'Re': 5})  # Ta>=30 tier
+    assert p['depth'] == 0.80 and p['amix'] == 0.02  # from the Ta>=30 tier
+    assert p['iex'] == 3  # VWN, overriding the default IEX=4
+    # alloys without an override keep pyemto's default IEX (not set here)
+    assert 'iex' not in _params_for('DFT_0001', {'W': 91, 'Re': 9})
 
 
 def test_hf_d80_fallback_wins_and_uses_depth080():

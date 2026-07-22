@@ -4,7 +4,8 @@ import numpy as np
 import pyemto
 from config import (ELEMENTS, EMTO_PARAMS, DEEP_TA_THRESHOLD, DEEP_TA_DEPTH,
                     DEEP_TA_AMIX, DEEP_TA_ALLOYS, AMIX_ONLY_ALLOYS,
-                    MIXED_HF_DEPTH, MIXED_HF_ALLOYS, HF_D80_ALLOYS, D70_ALLOYS)
+                    MIXED_HF_DEPTH, MIXED_HF_ALLOYS, HF_D80_ALLOYS, D70_ALLOYS,
+                    HF_SCATTER_A01_ALLOYS, IEX_OVERRIDE)
 from efgs import calc_efgs
 
 
@@ -32,6 +33,11 @@ def _params_for(alloy_id, composition):
         # the existing stage2 sws0/B0, only C' is at depth0.70.
         params['depth'] = 0.70
         params['amix'] = DEEP_TA_AMIX
+    elif alloy_id in HF_SCATTER_A01_ALLOYS:
+        # high-Hf basin-scatter: depth0.80 converges but the 12 points split across
+        # basins; the even-slower AMIX 0.01 pins them all to the ground basin.
+        params['depth'] = DEEP_TA_DEPTH
+        params['amix'] = 0.01
     elif ta >= DEEP_TA_THRESHOLD or alloy_id in DEEP_TA_ALLOYS:
         params['depth'] = DEEP_TA_DEPTH
         params['amix'] = DEEP_TA_AMIX
@@ -44,6 +50,10 @@ def _params_for(alloy_id, composition):
         params['amix'] = DEEP_TA_AMIX
     elif alloy_id in AMIX_ONLY_ALLOYS:
         params['amix'] = DEEP_TA_AMIX
+    # per-alloy atomic-solver XC (KGRN IEX) override, applied on top of any tier:
+    # default IEX=4 (PW92) diverges the atomic Dirac solve for a few compositions.
+    if alloy_id in IEX_OVERRIDE:
+        params['iex'] = IEX_OVERRIDE[alloy_id]
     return params
 
 

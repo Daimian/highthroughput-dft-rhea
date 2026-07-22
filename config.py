@@ -108,13 +108,23 @@ D70_ALLOYS = {
     'DFT_1117', 'DFT_1203', 'DFT_1354', 'DFT_1415', 'DFT_1488', 'DFT_1507',
 }
 
-# 全库最后 5 个未解决的合金（占 0.3%）——depth 杠杆已用尽：4/5 是高 Hf（Hf40x3 + Hf15），
-# 卡在"围道太深→崩、太浅(0.70)→也崩"之间，Hf+Ta 叠加的死角；DFT_0198 是近纯 Ta(Ta90)
-# 的极端。它们是"基态 basin 饥饿"(12 点收敛却多落激发态)或全崩，靠调 depth 治不了，需
-# basin 钉扎(从基态势热启动)才有望。仅作记录，_params_for 不引用（它们回落到各自 0.80
-# 档：Ta>=30→DEEP、其余→HF_D80）。stage3 输出目前停留在 depth0.70(未拟合)。
-UNRESOLVED_ALLOYS = {
-    'DFT_0198', 'DFT_0507', 'DFT_0508', 'DFT_0537', 'DFT_1060',
+# 全库最后 4 个 basin-散射合金（高 Hf：Hf40x3 + Hf15）——depth 已扫尽（0.70 崩、0.80 收敛
+# 但 12 点散进多 basin、基态簇饿到 <4、1.0 又崩）。病在 basin 选择而非收敛：depth0.80 下把
+# AMIX 从 0.02 再降到 **0.01**（更慢混合）即把 12 点一致钉进**基态**（DFT_1060 实测畸变最低
+# = stage2 基态 Δ0.6mRy）。代价是收敛更慢（需更长墙钟）。混合 depth：仍用现有 stage2 的
+# sws0/B0（含 Hf 为 depth0.95），C'@0.80。**不要**重跑 stage2 --generate。
+HF_SCATTER_A01_ALLOYS = {
+    'DFT_0507', 'DFT_0508', 'DFT_0537', 'DFT_1060',
+}
+
+# 逐合金的原子求解器 XC 覆盖（KGRN 的 IEX）。DFT_0198(Hf2Ta90)的 Hf 4f14 Dirac 原子解在
+# 默认 IEX=4(Perdew-Wang PW92 LDA)下振荡发散（"ATOMC: Too few iterations"，depth/dirac_niter/
+# sofc/lmaxh 全无效；隔离测试证明纯 Ta100 同参数收敛 => 病在痕量 Hf 的原子参考 XC 势形状）。
+# 换任何别的 XC 参数化都干净收敛：IEX=3(VWN) 与 6(PZ) 逐位相同(C11=296/C44=94/c'=79)，就是
+# PW92 若能收敛也会给的 LDA 答案；取 **IEX=3(VWN)**，与全库其余 IEX=4 同为 LDA-SCF(+KFCD PBE
+# 修正)、方法学一致，不必改标称成分。IEX 取值表见 docs/stage3-report.md。
+IEX_OVERRIDE = {
+    'DFT_0198': 3,
 }
 
 MIXED_HF_DEPTH = 0.90

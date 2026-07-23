@@ -18,6 +18,22 @@
 > `structures/` 下运行 `get_kstr.sh`（即 `kstr < X.kstr`、`bmdl < X.bmdl`、
 > `shape < X.shape`）重新生成。
 
+## 结果与状态
+
+**流水线已跑通全库:stage1 / stage2 / stage3 均 1598 / 1598 = 100%。**
+
+- `results/final_mechanical_properties.csv` —— 全 1598 个合金的 C11/C12/C44/C′ + 派生力学量 + 拟合质量(R²、离群剔除点数)+ Born 稳定性,**全部经基态确认**。
+- `results/20260723-难熔高熵合金弹性力学性质-基态确认1598条-高通量DFT计算.csv` + `results/README-弹性力学性质.md` —— 面向合作者的交付版(附中文列说明、方法、局限、溯源)。
+- **验证**:W91Re9(DFT_0001)与纯 W 单晶实验各弹性常数均在几个 % 内吻合(C11 533 vs 522、C44 158 vs 161、B 306 vs 310 GPa)。
+
+关键发现(详见 `docs/stage3-report.md`):
+
+- **收敛调参**:弹性畸变破坏立方对称、比 EOS 难收敛。全库靠**离群守卫** + 分档 **depth/AMIX/IEX**(`config.py` 的 `_params_for`)达到 100%——含 Hf 合金走混合 depth(B0@0.95 + C′@浅),富 Ta 角要更深 depth,DFT_0198 靠 IEX=3(VWN)修 Hf 4f 原子解发散。
+- **AMIX 物理**(§5.1):慢 AMIX 对 Hf 双稳合金钉基态(解药),对富 V 尖 DOS 合金反而破坏费米搜索(毒药);真正的数据健康判据是**拟合质量,不是原始 energy-gap**。
+- **Born 失稳规律**(§4.1):12 个 C′≤0 失稳合金**全部**落在低 VEC(≤4.5)+ Hf 富集角,符合第 4 族(Ti/Zr/Hf)BCC 在 0 K 力学亚稳的物理——经全库 1598 检验无反例。
+
+> **原始 DFT 数据不纳入版本管理**:`stageN_*/DFT_XXXX/` 下的逐点中间产物(~98 GB)可由 `run_pipeline.py --generate` + `structures/` 再生,所有 load-bearing 的量已提取进 `results/*.csv`。本地清理与再生见 `docs/archive-manifest.md`。
+
 ## 计算参数
 
 | 项 | 值 |
@@ -200,14 +216,27 @@ bash jobs/tests/run_all.sh
 | --- | --- |
 | `stage1_coarse_results.csv` | `DFT_ID, Alloy, SWS0, B0`（粗扫） |
 | `stage1_retry_queue.csv` | `DFT_ID, Alloy, old_sws_center, new_sws_center, reason, retry_round` |
-| `stage2_fine_results.csv` | `DFT_ID, Alloy, SWS0, B0`（细扫） |
-| `final_mechanical_properties.csv` | SWS0, B0, C11/C12/C44 与派生力学量 |
+| `stage2_fine_results.csv` | `DFT_ID, Alloy, SWS0, B0`（细扫，供 stage3 用） |
+| `stage3_elastic_r2.csv` | 各合金 C′/C44 畸变拟合的 R²、离群剔除点数 |
+| `final_mechanical_properties.csv` | 全量 1598 条:SWS0, B0, C11/C12/C44/C′ 与派生力学量 + R² + Born 稳定性 |
 | `stageN_errors.csv` | `DFT_ID, Alloy, SWS, error_type, message` |
 
-`final_mechanical_properties.csv` 中的派生量：体模量 `B`，剪切模量 `G_V`/`G_R`/`G_VRH`
-（Voigt–Reuss–Hill），杨氏模量 `E`，泊松比 `nu`，`B_G_ratio`（Pugh 比），
-Cauchy 压 `Cauchy = C12 − C44`，各向异性因子 `A = 2C44/(C11 − C12)`，
-以及经验硬度 `Hv = 2(k²G)^0.585 − 3`（`k = G/B`）。
+**面向合作者的交付版**（`git` 中随版本管理，附中文说明）:
+
+| 文件 | 内容 |
+| --- | --- |
+| `20260723-…基态确认1598条….csv` | 全库交付版（与 `final_mechanical_properties.csv` 同内容） |
+| `README-弹性力学性质.md` | 23 列定义、方法、解读、已知局限、溯源 |
+| `20260722-…基态确认1480条….csv` | 历史 v1（README 记录演进用） |
+
+`final_mechanical_properties.csv` 的列：`SWS0, B0, C11, C12, C44, cprime, B,
+G_V, G_R, G_VRH, E, nu, B_G_ratio, Cauchy, A, Hv, R2_cprime, R2_c44,
+n_drop_cprime, n_drop_c44, born_stable`。派生量:体模量 `B`，剪切模量
+`G_V`/`G_R`/`G_VRH`（Voigt–Reuss–Hill），杨氏模量 `E`，泊松比 `nu`，
+`B_G_ratio`（Pugh 比），Cauchy 压 `Cauchy = C12 − C44`，各向异性因子
+`A = 2C44/(C11 − C12)`，经验硬度 `Hv = 2(k²G)^0.585 − 3`（`k = G/B`），
+`R2_*`/`n_drop_*` 为畸变拟合的质量与离群守卫剔除点数，`born_stable` 为
+Born 力学稳定性（Y/N）。
 
 ## 模块结构
 
@@ -253,5 +282,9 @@ python -m pytest tests/
 
 ## 文档
 
-- 设计文档：`docs/superpowers/specs/2026-07-20-highthroughput-emto-rhea-design.md`
+- **stage3 弹性常数报告**：`docs/stage3-report.md` —— 方法、全库结果、§4.1 Born 失稳成分规律、§5 收敛调参分档、§5.1 AMIX 物理
+- **stage2 细扫 EOS 报告**：`docs/stage2-summary-report.md`
+- **交付版说明**：`results/README-弹性力学性质.md`
+- **归档 / 清理 manifest**：`docs/archive-manifest.md` —— raw DFT 目录逐条删除命令 + 再生方式
+- 设计文档：`docs/superpowers/specs/2026-07-20-highthroughput-emto-rhea-design.md`、`docs/superpowers/specs/2026-07-23-repo-github-vs-archive-design.md`
 - 实施计划：`docs/superpowers/plans/2026-07-20-highthroughput-emto-rhea.md`

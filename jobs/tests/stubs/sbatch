@@ -1,0 +1,6 @@
+#!/bin/bash
+# 假 sbatch：把收到的参数逐行写进 $SBATCH_CAPTURE，然后打印一个假 jobid。
+if [ -n "${SBATCH_CAPTURE:-}" ]; then
+    printf '%s\n' "$@" > "$SBATCH_CAPTURE"
+fi
+echo "Submitted batch job 999999"

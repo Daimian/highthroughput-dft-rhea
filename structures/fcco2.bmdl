@@ -1,0 +1,11 @@
+BMDL      HP......=N                              12.12.2024
+JOBNAM...=fcco2      MSGL.=  1 NPRN.=  0
+DIR001=bmdl/
+DIR006=bmdl/
+Madelung potential for fcco2
+NL.....= 7
+LAMDA....=      2.50 AMAX....=      4.50 BMAX....=      4.50
+NQ....=  1 LAT...=11 IPRIM.= 1 NQR2..= 0
+A........=1.00000000 B.......=0.96078431 C.......=0.98078447
+ALPHA....= 90.000000 BETA....= 90.000000 GAMMA...= 90.000000
+QX(001)..= 0.0000000 QY(001).= 0.0000000 QZ(001).= 0.0000000

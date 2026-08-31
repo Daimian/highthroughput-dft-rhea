@@ -1,0 +1,7 @@
+SHAPE     HP......=N                            12.12.2024
+JOBNAM...=fcco3      MSGL.=  1
+FOR001=kstr/fcco3.tfh
+DIR002=shape/
+DIR006=shape/
+Lmax..= 30 NSR..=129 NFI..= 11
+NPRN..=  0 IVEF.=  3

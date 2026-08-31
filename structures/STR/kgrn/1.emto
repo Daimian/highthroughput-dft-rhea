@@ -1,0 +1,27 @@
+#! /bin/bash
+SUBL=1                                      # this can not in the Loop!
+SPLT=0.5 -0.5 0.0                           # this can not in the Loop!
+QTR=2.0 -1.0 -1.0
+WST=0.7 1.4 1.4
+                                            # all other parameters of kgrn could be in Loop
+
+Loop 1:MAT=FeCr(10 5 20:1)Al(1 2:2)         #this is the alloy
+    Loop 2:SWS=(2.58 0.02 2.74:1)           #this can get SWS change: 2.58 2.60 2.62 2.64 ... 2.72 2.74
+
+STR=bcc                                     #this is the structure fcc
+job=t1-%MAT%SWS{4.2f}                       #this is jobname an file name: %SWS{4.2f} 
+                                            #means the it will be substitute by each sws in the Loop 2 with format 4.2f
+
+# you can comment any where, but anything after # will be ignore
+
+GPM=X
+AFM=F
+NKX=15
+NKY=15
+NKZ=15
+AMIX=0.01
+ALPCPA=0.602
+SPFMT=%7.3f                       # control initial spin format, but you need the kgrn support that
+# -----End of File-------#the flag for end the input file  must have it
+
+whatever after  after the line match "##* *.*[Ee]nd *of *[Ff]ile.*"  will be ignored

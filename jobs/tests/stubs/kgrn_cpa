@@ -1,0 +1,24 @@
+#!/bin/bash
+# 假 KGRN。从 stdin 读 JOBNAM= 决定输出文件名，行为由环境变量控制。
+set -u
+input=$(cat)
+job=$(printf '%s\n' "$input" | sed -n 's/^JOBNAM=//p' | head -1)
+mkdir -p kgrn/tmp
+
+if [ "${STUB_KGRN_FAIL:-0}" = "1" ]; then
+    echo "KGRN crashed" > "kgrn/$job.prn"
+    exit 3
+fi
+
+if [ -n "${STUB_KGRN_SLEEP:-}" ]; then
+    sleep "$STUB_KGRN_SLEEP"
+fi
+
+if [ "${STUB_KGRN_NOCONV:-0}" = "1" ]; then
+    echo "KGRN NOT CONVERGED" > "kgrn/$job.prn"
+    exit 0
+fi
+
+echo "KGRN FINISHED for $job" > "kgrn/$job.prn"
+touch "kgrn/$job.atm" "kgrn/$job.chd" "kgrn/$job.pot" "kgrn/$job.zms" "kgrn/tmp/$job.tmp"
+echo "stdout from kgrn_cpa"

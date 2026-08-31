@@ -1,0 +1,13 @@
+KSTR      HP......=N                              12.12.2024
+JOBNAM...=fccm5      MSGL.=  1 MODE...=B STORE..=Y HIGH...=Y
+DIR001=kstr/
+DIR006=kstr/
+Slope matrices, fccm5     , (kappa*w)^2=   0.0
+NL.....= 4 NLH...=11 NLW...= 9 NDER..= 6 ITRANS= 3 NPRN..= 0
+(K*W)^2..=  0.000000 DMAX....=    2.4130 RWATS...=      0.10
+NQ3...=  1 LAT...=10 IPRIM.= 1 NGHBP.=13 NQR2..= 0
+A........=1.00000000 B.......=0.90476190 C.......=1.35024567
+ALPHA....= 90.000000 BETA....= 90.000000 GAMMA...= 90.000000
+QX(001)..= 0.0000000 QY(001).= 0.0000000 QZ(001).= 0.0000000
+a/w(IQ)..= 0.70 0.70 0.70 0.70
+LAMDA....= 2.5000000 AMAX....= 4.5000000 BMAX....= 4.5000000

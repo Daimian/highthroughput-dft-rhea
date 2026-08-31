@@ -3,6 +3,14 @@ import csv
 import re
 from collections import Counter
 
+# Energy gap that separates distinct electronic states. Points of one physical
+# EOS vary by milli-Ry across the window; a point that converged to a different
+# (metastable/spurious) state sits >= ~0.4 Ry away (observed 0.4-6.7 Ry). This
+# threshold must be well above the real spread and below the smallest spurious
+# gap so the two never merge and a real EOS is never split.
+EOS_STATE_GAP_RY = 0.1
+
+
 def check_emto_errors(alloy_id, stage_dir):
     folder = os.path.join(stage_dir, alloy_id)
     kgrn_dir = os.path.join(folder, 'kgrn')
@@ -28,6 +36,8 @@ def check_emto_errors(alloy_id, stage_dir):
 
     all_jobs = kgrn_jobs | kfcd_jobs
 
+    point_energies = []  # (sws, energy) for points with a finite total energy
+
     for job in sorted(all_jobs):
         sws = _extract_sws(job)
 
@@ -44,7 +54,11 @@ def check_emto_errors(alloy_id, stage_dir):
         if os.path.isfile(kgrn_file):
             with open(kgrn_file, 'r') as f:
                 content = f.read()
-            if 'NOT CONVERGED' in content.upper():
+            # 用正向判据，不能搜 "not converged"：KGRN 在每次 SCF 迭代里都会
+            # 打印 "PATHOP: CPA equation ... not converged" 和 "Linear loop not
+            # converged"，一个完全收敛的点也有几十条，搜子串会把所有成功的点
+            # 全判成失败。完成标记与 run_one.sh / submit_stage.sh 保持一致。
+            if 'CALCULATION FINISHED' not in content.upper():
                 errors.append({'sws': sws, 'error_type': 'scf_not_converged',
                                'message': f'KGRN SCF not converged for {job}'})
 
@@ -61,19 +75,63 @@ def check_emto_errors(alloy_id, stage_dir):
                            'message': f'No total energy found in kfcd output for {job}'})
             continue
 
-        # Check for NaN energy
+        # Check for NaN energy over every TOT- line, and record the one canonical
+        # total energy for outlier detection. KFCD prints a TOT- line per XC
+        # functional (LDA/PBE/P07/AM5/LAG); the pipeline uses PBE, so key off
+        # TOT-PBE (falling back to TOT-LDA) rather than all TOT- lines.
+        pbe_energy = None
+        lda_energy = None
         for line in content.split('\n'):
             if 'TOT-' in line:
                 parts = line.split()
                 if len(parts) >= 4:
                     try:
                         en = float(parts[3])
-                        if en != en:  # NaN check
-                            errors.append({'sws': sws, 'error_type': 'nan_energy',
-                                           'message': f'NaN energy in {job}'})
                     except ValueError:
                         errors.append({'sws': sws, 'error_type': 'nan_energy',
                                        'message': f'Unparseable energy in {job}'})
+                        continue
+                    if en != en:  # NaN check
+                        errors.append({'sws': sws, 'error_type': 'nan_energy',
+                                       'message': f'NaN energy in {job}'})
+                    elif parts[0] == 'TOT-PBE':
+                        pbe_energy = en
+                    elif parts[0] == 'TOT-LDA':
+                        lda_energy = en
+        canonical = pbe_energy if pbe_energy is not None else lda_energy
+        if canonical is not None:
+            point_energies.append((sws, canonical))
+
+    # Outlier-energy guard: a point may hit the completion marker yet converge to
+    # a metastable/spurious electronic state, ABOVE or BELOW the true EOS energy
+    # (observed both: metastable states +0.4..+24 Ry, and isolated spurious points
+    # -0.4..-0.8 Ry). Cluster the energies by EOS_STATE_GAP_RY gaps, then keep the
+    # GROUND STATE: the lowest-energy cluster that is a real state (>= MIN_STATE_PTS
+    # points). This rejects both a single spurious point sitting below the family
+    # (too few points to be a state) AND a more-populated metastable state sitting
+    # above the ground state (lower energy wins over population). Fall back to the
+    # largest cluster if none reaches the size threshold. Flag every kept-outside
+    # point so fit_eos uses only the ground-state EOS.
+    MIN_STATE_PTS = 3
+    if len(point_energies) >= 3:
+        ordered = sorted(point_energies, key=lambda p: p[1])
+        clusters = [[ordered[0]]]
+        for sws, en in ordered[1:]:
+            if en - clusters[-1][-1][1] > EOS_STATE_GAP_RY:
+                clusters.append([(sws, en)])
+            else:
+                clusters[-1].append((sws, en))
+        real = [c for c in clusters if len(c) >= MIN_STATE_PTS]
+        # clusters are already in ascending energy order, so real[0] / clusters[0]
+        # with the smallest starting energy is the lowest state.
+        keep = real[0] if real else max(clusters, key=len)
+        keep_lo, keep_hi = keep[0][1], keep[-1][1]
+        for sws, en in point_energies:
+            if en < keep_lo or en > keep_hi:
+                errors.append({'sws': sws, 'error_type': 'outlier_energy',
+                               'message': f'total energy {en:.3f} Ry lies outside '
+                                          f'the ground-state cluster '
+                                          f'[{keep_lo:.3f}, {keep_hi:.3f}] Ry'})
 
     return errors
 

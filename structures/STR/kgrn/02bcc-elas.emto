@@ -1,0 +1,47 @@
+#! /usr/bin/env EMTO
+SUBL=1 
+SPLT=0.0                  
+
+Loop 1:MAT=V100
+Loop 2:STR=Bco(0 5:1);Fco(0 5:1)
+Loop 2:NKX=[27 27 27 27 27 27:1];[ 27 27 27 27 27 27:1]
+Loop 2:NKY=[27 27 27 27 27 27:1];[ 27 27 27 27 27 27:1]
+Loop 2:NKZ=[27 27 27 27 27 27:1];[ 37 37 37 37 37 37:1]
+
+SWS=2.70
+
+job=%MAT%SWS{4.2f}%STR               
+
+CPU=2
+STMP=A
+SOFC=Y
+CRT=m
+AFM=P
+IEX=7
+ALPCPA=0.602
+# -----End of File-------#the flag for end the input file  must have it
+fef0.dat:KMSH...= G IBZ..= 11 NKX..= 27 NKY..= 27 NKZ..= 37 FBZ..=  N
+fef1.dat:KMSH...= G IBZ..= 11 NKX..= 27 NKY..= 27 NKZ..= 37 FBZ..=  N
+fef2.dat:KMSH...= G IBZ..= 11 NKX..= 27 NKY..= 27 NKZ..= 37 FBZ..=  N
+fef3.dat:KMSH...= G IBZ..= 11 NKX..= 27 NKY..= 27 NKZ..= 37 FBZ..=  N
+fef4.dat:KMSH...= G IBZ..= 11 NKX..= 27 NKY..= 27 NKZ..= 37 FBZ..=  N
+fef5.dat:KMSH...= G IBZ..= 11 NKX..= 27 NKY..= 27 NKZ..= 37 FBZ..=  N
+feo0.dat:KMSH...= G IBZ..= 10 NKX..= 27 NKY..= 27 NKZ..= 27 FBZ..=  N
+feo1.dat:KMSH...= G IBZ..= 10 NKX..= 27 NKY..= 27 NKZ..= 27 FBZ..=  N
+feo2.dat:KMSH...= G IBZ..= 10 NKX..= 27 NKY..= 27 NKZ..= 27 FBZ..=  N
+feo3.dat:KMSH...= G IBZ..= 10 NKX..= 27 NKY..= 27 NKZ..= 27 FBZ..=  N
+feo4.dat:KMSH...= G IBZ..= 10 NKX..= 27 NKY..= 27 NKZ..= 27 FBZ..=  N
+feo5.dat:KMSH...= G IBZ..= 10 NKX..= 27 NKY..= 27 NKZ..= 27 FBZ..=  N
+fef0.dat:FOR004=../bmdl/mdl/Fco0.mdl
+fef1.dat:FOR004=../bmdl/mdl/Fco1.mdl
+fef2.dat:FOR004=../bmdl/mdl/Fco2.mdl
+fef3.dat:FOR004=../bmdl/mdl/Fco3.mdl
+fef4.dat:FOR004=../bmdl/mdl/Fco4.mdl
+fef5.dat:FOR004=../bmdl/mdl/Fco5.mdl
+feo0.dat:FOR004=../bmdl/mdl/Bco0.mdl
+feo1.dat:FOR004=../bmdl/mdl/Bco1.mdl
+feo2.dat:FOR004=../bmdl/mdl/Bco2.mdl
+feo3.dat:FOR004=../bmdl/mdl/Bco3.mdl
+feo4.dat:FOR004=../bmdl/mdl/Bco4.mdl
+feo5.dat:FOR004=../bmdl/mdl/Bco5.mdl
+# vim:ft=sh

@@ -70,5 +70,5 @@
 ## 6. 溯源
 
 - 输入成分：`20260718-refractory-hea-compositions-1600-highthroughput-dft.csv`（1598 条）。
-- 计算代码与分档收敛策略见仓库 `config.py` / `elastic_analysis.py` 与 `docs/stage3-report.md`。
+- 计算代码与分档收敛策略见仓库 `config.py` / `elastic_analysis.py` 与 `docs/stage3-report.zh.md`。
 - 全量 1598 条（内容同本文件）：`results/final_mechanical_properties.csv`。

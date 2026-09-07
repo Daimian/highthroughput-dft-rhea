@@ -1,65 +1,78 @@
-# 归档 / 清理 manifest
+# Archive / cleanup manifest
 
-[English](archive-manifest.en.md) | 中文
+English | [中文](archive-manifest.zh.md)
 
-日期:2026-07-23　|　设计依据:`docs/superpowers/specs/2026-07-23-repo-github-vs-archive-design.md`
+Date: 2026-07-23　|　Design basis: `docs/superpowers/specs/2026-07-23-repo-github-vs-archive-design.md`
 
-## 结论
+## Conclusion
 
-**raw DFT 目录一律不归档、不进 git。** 每个 stage 下单个 DFT 计算的中间产物（`.prn/.pot/.chd/.atm`、kgrn/kfcd 工作文件）承载的科学量都已提取进 `results/` 的 CSV,且可由 `run_pipeline.py --generate` + `structures/` 输入卡再生。故这些目录可安全删除,腾出 ~98 GB。
+**Raw DFT directories are never archived and never go into git.** Every scientific quantity carried
+by the intermediates of an individual DFT calculation under each stage (`.prn/.pot/.chd/.atm`, the
+kgrn/kfcd working files) has already been extracted into the CSVs under `results/`, and they can be
+regenerated from `run_pipeline.py --generate` plus the input cards in `structures/`. These
+directories can therefore be deleted safely, freeing ~98 GB.
 
-进 git 的精选成果见 `.gitignore` 白名单;此文件只负责记录"曾存在什么、如何再生、怎么删"。
+For the curated results that do go into git, see the allowlist in `.gitignore`; this file only
+records what once existed, how to regenerate it, and how to delete it.
 
-## 删除前安全检查
+## Safety check before deleting
 
-先确认交付物与复现中间表已入库,再删 raw:
+First confirm that the deliverables and the reproduction intermediates are committed, then delete
+the raw data:
 
 ```bash
-git ls-files results/ | grep -E 'final_mechanical_properties|stage2_fine_results|1598条'
-# 应列出这三者;若为空,先提交 results/ 白名单文件再往下删。
+git ls-files results/ | grep -E 'final_mechanical_properties|stage2_fine_results|1598'
+# This should list them; if it comes back empty, commit the allowlisted files under results/
+# before deleting anything below.
 ```
 
-## 逐条删除命令
+## Deletion commands, one by one
 
 ```bash
-# --- raw DFT 主目录（run_pipeline.py --generate 可再生；箭头为已入库的对应 CSV） ---
+# --- Main raw DFT directories (regenerable with run_pipeline.py --generate; the arrow points
+#     to the corresponding CSV already committed) ---
 rm -rf stage1_eos_coarse/    # 21G  -> results/stage1_coarse_results.csv
 rm -rf stage2_eos_fine/      # 36G  -> results/stage2_fine_results.csv (sws0/B0)
 rm -rf stage3_elastic/       # 39G  -> results/final_mechanical_properties.csv
 
-# --- 一次性修正 / 验证跑（结果已并入 final CSV / 结论已入报告） ---
-rm -rf stage3_g118/          # 2.7G 30 个 Hf 激发态修正 + 78 个复核，已并入 final CSV
-rm -rf stage3_v9/            # 55M  9 个富 V depth0.95+amix0.01 验证（结论:production 值可信）
+# --- One-off correction / validation runs (results already merged into the final CSV;
+#     conclusions already written up in the reports) ---
+rm -rf stage3_g118/          # 2.7G 30 Hf excited-state corrections + 78 re-checks, merged into the final CSV
+rm -rf stage3_v9/            # 55M  validation of 9 V-rich alloys at depth0.95+amix0.01
+                             #      (conclusion: the production values are trustworthy)
 
-# --- 定向调参诊断目录（结论已入 docs/stage3-report.md §5/§5.1 + memory，合计 ~800M） ---
+# --- Targeted tuning / diagnostic directories (conclusions are in docs/stage3-report.md
+#     §5/§5.1 + memory; ~800M in total) ---
 rm -rf stage3_a01/ stage3_cross/ stage3_d10/ stage3_dirac/ stage3_gapchk/ \
        stage3_hfcore/ stage3_iex/ stage3_lmaxh/ stage3_niter/ stage3_sofc/ \
        stage3_ta100/ stage3_tune/ stage3_tune9/ stage3_tuneA/ stage3_tuneB/ \
        stage3_tuneD/ stage3_vmix/
 
-# --- 零残值文件 ---
-rm -f dos_DFT_0007.png dos_DFT_0229.png eos_DFT_0243.png   # 一次性诊断图，无引用
-rm -f job-emto-default.sh                                   # 被 jobs/ 取代，且账号 p0020465 是错的
+# --- Files with no residual value ---
+rm -f dos_DFT_0007.png dos_DFT_0229.png eos_DFT_0243.png   # one-off diagnostic plots, unreferenced
+rm -f job-emto-default.sh                                   # superseded by jobs/, and the account p0020465 is wrong
 
-# --- results/ 冗余副本与备份 ---
-rm -f results/mechanical_properties_healthy.csv            # 与 1598 CSV 逐字节相同
+# --- Redundant copies and backups under results/ ---
+rm -f results/mechanical_properties_healthy.csv            # byte-identical to the 1598-row CSV
 rm -f results/final_mechanical_properties.csv.bak_pre_g118merge \
       results/final_mechanical_properties.csv.bak_premixed \
       results/stage2_fine_results.csv.bak_predepth80
 ```
 
-## 再生方式（如日后需要 raw 数据）
+## How to regenerate (if the raw data is ever needed again)
 
-1. `python run_pipeline.py --generate --stage {1,2,3}` 重新生成输入并提交 Slurm(见 `jobs/submit_stage.sh`、memory `emto-analysis-env`)。
-2. 分档收敛参数（depth/AMIX/IEX）已固化在 `config.py` 的 `_params_for`,再生即复现同一结果。
-3. `structures/` 的 kstr/bmdl/shape 二进制由 `structures/get_kstr.sh` 再生。
+1. `python run_pipeline.py --generate --stage {1,2,3}` regenerates the input; submit it to Slurm
+   (see `jobs/submit_stage.sh` and the `emto-analysis-env` memory).
+2. The tiered convergence parameters (depth/AMIX/IEX) are frozen in `_params_for` in `config.py`, so
+   regenerating reproduces exactly the same results.
+3. The kstr/bmdl/shape binaries under `structures/` are regenerated by `structures/get_kstr.sh`.
 
-## 大小汇总
+## Size summary
 
-| 桶 | 内容 | 大小 |
+| Bucket | Contents | Size |
 |---|---|---|
-| raw 主目录 | stage1/2/3_elastic | ~96 G |
-| 修正/验证 | g118 + v9 | ~2.8 G |
-| 调参诊断 | 17 个 stage3_* 变体 | ~0.8 G |
-| 零残值 | PNG + job 脚本 + bak | < 1 M |
-| **合计可释放** | | **~98 GB** |
+| Main raw directories | stage1/2/3_elastic | ~96 G |
+| Corrections / validation | g118 + v9 | ~2.8 G |
+| Tuning diagnostics | 17 `stage3_*` variants | ~0.8 G |
+| No residual value | PNGs + job script + .bak | < 1 M |
+| **Total reclaimable** | | **~98 GB** |

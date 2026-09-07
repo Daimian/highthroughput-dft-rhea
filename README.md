@@ -1,292 +1,324 @@
 # highthroughput-dft-rhea
 
-[English](README.en.md) | 中文
+English | [中文](README.zh.md)
 
-面向 BCC 难熔高熵合金（RHEA）的高通量 EMTO-CPA 计算流水线。基于
-[pyemto](https://github.com/hpleva/pyemto) 批量生成 KGRN/KFCD 输入文件，并对集群
-算完的结果做状态方程（EOS）拟合、弹性常数拟合与力学性能推导。
+A high-throughput EMTO-CPA workflow for BCC refractory high-entropy alloys (RHEAs).
+It uses [pyemto](https://github.com/hpleva/pyemto) to generate KGRN/KFCD input files in
+bulk, and analyses the cluster output through equation-of-state (EOS) fitting, elastic-constant
+fitting, and derivation of mechanical properties.
 
-输入数据为 `20260718-refractory-hea-compositions-1600-highthroughput-dft.csv`，
-包含 1598 个成分（Ti, Zr, Hf, V, Nb, Ta, Mo, W, Re 九元素体系，2–7 组元，
-原子百分比之和为 100）。
+The input data is `20260718-refractory-hea-compositions-1600-highthroughput-dft.csv`,
+containing 1598 compositions (a nine-element system of Ti, Zr, Hf, V, Nb, Ta, Mo, W, Re;
+2–7 components; atomic percentages summing to 100).
 
-> **注意**：KSTR / BMDL / SHAPE 结构文件由用户自行提供（`--latpath` 指向的目录，
-> 默认 `/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures`）。本仓库负责
-> KGRN/KFCD 输入的生成、向 Slurm 提交（`jobs/`，见「集群提交」一节）与结果分析。
+> **Note**: KSTR / BMDL / SHAPE structure files are supplied by the user (the directory
+> pointed to by `--latpath`, default
+> `/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures`). This repository
+> handles KGRN/KFCD input generation, submission to Slurm (`jobs/`, see the "Cluster
+> submission" section), and result analysis.
 >
-> 仓库里的 `structures/` 只跟踪 kstr/bmdl/shape 的**输入卡**（`*.kstr` / `*.bmdl` /
-> `*.shape`）和生成脚本 `get_kstr.sh`。KGRN 真正读取的 `kstr/*.tfh`、KFCD 读取的
-> `bmdl/*.mdl` 与 `shape/*.shp`（约 280 MB）未纳入版本管理，clone 后需在
-> `structures/` 下运行 `get_kstr.sh`（即 `kstr < X.kstr`、`bmdl < X.bmdl`、
-> `shape < X.shape`）重新生成。
+> The `structures/` directory in this repository only tracks the kstr/bmdl/shape **input
+> cards** (`*.kstr` / `*.bmdl` / `*.shape`) and the generation script `get_kstr.sh`. The files
+> that KGRN and KFCD actually read — `kstr/*.tfh`, `bmdl/*.mdl` and `shape/*.shp` (about
+> 280 MB) — are not under version control. After cloning, run `get_kstr.sh` inside
+> `structures/` (i.e. `kstr < X.kstr`, `bmdl < X.bmdl`, `shape < X.shape`) to regenerate them.
 
-## 结果与状态
+## Results and status
 
-**流水线已跑通全库:stage1 / stage2 / stage3 均 1598 / 1598 = 100%。**
+**The pipeline has run over the full library: stage1 / stage2 / stage3 are all 1598 / 1598 = 100%.**
 
-- `results/final_mechanical_properties.csv` —— 全 1598 个合金的 C11/C12/C44/C′ + 派生力学量 + 拟合质量(R²、离群剔除点数)+ Born 稳定性,**全部经基态确认**。
-- `results/20260723-难熔高熵合金弹性力学性质-基态确认1598条-高通量DFT计算.csv` + `results/README-弹性力学性质.md` —— 面向合作者的交付版(附中文列说明、方法、局限、溯源)。
-- **验证**:W91Re9(DFT_0001)与纯 W 单晶实验各弹性常数均在几个 % 内吻合(C11 533 vs 522、C44 158 vs 161、B 306 vs 310 GPa)。
+- `results/final_mechanical_properties.csv` — C11/C12/C44/C′ plus derived mechanical
+  quantities, fit quality (R², number of outliers dropped) and Born stability for all 1598
+  alloys, **all ground-state confirmed**.
+- `results/20260723-refractory-hea-elastic-mechanical-properties-groundstate-confirmed-1598-highthroughput-dft.csv`
+  + `results/README-elastic-mechanical-properties.md` — the deliverable version for
+  collaborators (with column definitions, method, limitations and provenance).
+- **Validation**: W91Re9 (DFT_0001) agrees with single-crystal experiment on pure W to within
+  a few % for every elastic constant (C11 533 vs 522, C44 158 vs 161, B 306 vs 310 GPa).
 
-关键发现(详见 `docs/stage3-report.md`):
+Key findings (see `docs/stage3-report.md` for details):
 
-- **收敛调参**:弹性畸变破坏立方对称、比 EOS 难收敛。全库靠**离群守卫** + 分档 **depth/AMIX/IEX**(`config.py` 的 `_params_for`)达到 100%——含 Hf 合金走混合 depth(B0@0.95 + C′@浅),富 Ta 角要更深 depth,DFT_0198 靠 IEX=3(VWN)修 Hf 4f 原子解发散。
-- **AMIX 物理**(§5.1):慢 AMIX 对 Hf 双稳合金钉基态(解药),对富 V 尖 DOS 合金反而破坏费米搜索(毒药);真正的数据健康判据是**拟合质量,不是原始 energy-gap**。
-- **Born 失稳规律**(§4.1):12 个 C′≤0 失稳合金**全部**落在低 VEC(≤4.5)+ Hf 富集角,符合第 4 族(Ti/Zr/Hf)BCC 在 0 K 力学亚稳的物理——经全库 1598 检验无反例。
+- **Convergence tuning**: elastic distortions break cubic symmetry and are harder to converge
+  than EOS. The full library reached 100% via an **outlier guard** plus **tiered
+  depth/AMIX/IEX** settings (`_params_for` in `config.py`) — Hf-containing alloys use mixed
+  depth (B0@0.95 + C′@shallow), the Ta-rich corner needs deeper depth, and DFT_0198 was fixed
+  with IEX=3 (VWN) to cure the divergence of the Hf 4f atomic solution.
+- **AMIX physics** (§5.1): slow AMIX pins the ground state for bistable Hf alloys (the cure),
+  but breaks the Fermi search for V-rich alloys with a sharp DOS (the poison); the true test of
+  data health is **fit quality, not the raw energy gap**.
+- **Born instability pattern** (§4.1): **all** 12 alloys with C′≤0 fall in the low-VEC (≤4.5)
+  + Hf-enriched corner, consistent with the physics of group-4 (Ti/Zr/Hf) BCC being
+  mechanically metastable at 0 K — no counterexample across all 1598 alloys.
 
-> **原始 DFT 数据不纳入版本管理**:`stageN_*/DFT_XXXX/` 下的逐点中间产物(~98 GB)可由 `run_pipeline.py --generate` + `structures/` 再生,所有 load-bearing 的量已提取进 `results/*.csv`。本地清理与再生见 `docs/archive-manifest.md`。
+> **Raw DFT data is not under version control**: the per-point intermediates under
+> `stageN_*/DFT_XXXX/` (~98 GB) can be regenerated from `run_pipeline.py --generate` +
+> `structures/`, and every load-bearing quantity has been extracted into `results/*.csv`. See
+> `docs/archive-manifest.md` for local cleanup and regeneration.
 
-## 计算参数
+## Calculation parameters
 
-| 项 | 值 |
+| Item | Value |
 | --- | --- |
-| 结构 | BCC（无序合金用 CPA） |
-| 交换关联泛函 | PBE |
-| 磁性 | 非磁 (`afm='P'`) |
-| 展开 | 单展开 (`expan='S'`) |
-| 芯态 | 软芯 (`sofc='Y'`) |
-| 其余 KGRN/KFCD 参数 | pyemto 默认值 |
+| Structure | BCC (CPA for the disordered alloys) |
+| Exchange-correlation functional | PBE |
+| Magnetism | Non-magnetic (`afm='P'`) |
+| Expansion | Single expansion (`expan='S'`) |
+| Core states | Soft core (`sofc='Y'`) |
+| All other KGRN/KFCD parameters | pyemto defaults |
 
-## 三阶段流程
+## Three-stage workflow
 
 ```
-CSV (1598 个成分)
+CSV (1598 compositions)
    │  vegard.py:  SWS_guess = Σ (c_i/100) · SWS_i
    ▼
-Stage 1  粗扫 EOS   6 点, SWS_guess ±3%     → stage1_eos_coarse/DFT_XXXX/
-   │  (用户提交集群) → 分析 → SWS0, B0
-   │      ├─ 极小值落在采样区间边缘/外部 → 写入 retry queue（平移中心）→ --retry 重生成
-   │      └─ EMTO 报错 → stage1_errors.csv
+Stage 1  coarse EOS   6 points, SWS_guess ±3%   → stage1_eos_coarse/DFT_XXXX/
+   │  (user submits to cluster) → analyse → SWS0, B0
+   │      ├─ minimum at or beyond the edge of the sampled range → written to the
+   │      │  retry queue (shifted centre) → regenerate with --retry
+   │      └─ EMTO error → stage1_errors.csv
    ▼
-Stage 2  细扫 EOS   11 点, SWS0 ±1.5%       → stage2_eos_fine/DFT_XXXX/
-   │  (提交集群) → 分析 → 精确 SWS0, B0
+Stage 2  fine EOS     11 points, SWS0 ±1.5%     → stage2_eos_fine/DFT_XXXX/
+   │  (submit to cluster) → analyse → accurate SWS0, B0
    ▼
-Stage 3  弹性常数（基于 stage2 的 SWS0/B0） → stage3_elastic/DFT_XXXX/
-   │  (提交集群) → 分析 → C11, C12, C44 + 力学性能
+Stage 3  elastic constants (from the stage2 SWS0/B0) → stage3_elastic/DFT_XXXX/
+   │  (submit to cluster) → analyse → C11, C12, C44 + mechanical properties
    ▼
 results/final_mechanical_properties.csv
 ```
 
-每个阶段都是 **生成 → 用户自行提交集群 → 分析** 的手动三步循环；生成与分析都会跳过
-已存在的目录 / 已写入结果的 DFT_ID，可以安全地重复执行。
+Every stage is the same manual three-step loop: **generate → user submits to the cluster →
+analyse**. Both generation and analysis skip directories that already exist and DFT_IDs whose
+results have already been written, so they are safe to re-run.
 
-## 用法
+## Usage
 
 ```bash
-# Stage 1：生成粗扫输入（结构文件目录用 --latpath 指定）
+# Stage 1: generate the coarse-scan input (structure directory given by --latpath)
 python run_pipeline.py --stage 1 --generate --latpath /path/to/structures
 
-# ——— 用户把 stage1_eos_coarse/ 下的作业提交到集群并等待完成 ———
+# ——— the user submits the jobs under stage1_eos_coarse/ to the cluster and waits ———
 
-# Stage 1：拟合 EOS，输出 SWS0/B0，并生成重试队列
+# Stage 1: fit the EOS, write out SWS0/B0, and build the retry queue
 python run_pipeline.py --stage 1 --analyze
 
-# 对拟合极小值落在边缘的合金，按平移后的 SWS 中心重新生成输入
+# For alloys whose fitted minimum landed at the edge, regenerate the input around a shifted SWS centre
 python run_pipeline.py --stage 1 --retry
-# （重新提交后再次 --analyze）
+# (re-submit, then --analyze again)
 
-# Stage 2：细扫
+# Stage 2: fine scan
 python run_pipeline.py --stage 2 --generate
 python run_pipeline.py --stage 2 --analyze
 
-# Stage 3：弹性常数与力学性能
+# Stage 3: elastic constants and mechanical properties
 python run_pipeline.py --stage 3 --generate
 python run_pipeline.py --stage 3 --analyze
 
-# 错误汇总（不带 --stage 时汇总全部三个阶段）
+# Error summary (without --stage it summarises all three stages)
 python run_pipeline.py --errors
 python run_pipeline.py --errors --stage 1
 ```
 
-### 命令行参数
+### Command-line options
 
-| 参数 | 说明 |
+| Option | Description |
 | --- | --- |
-| `--stage {1,2,3}` | 阶段编号；除 `--errors` 外必填 |
-| `--generate` | 生成该阶段的 EMTO 输入文件 |
-| `--analyze` | 分析该阶段已完成的输出 |
-| `--retry` | 按重试队列重新生成输入（仅 stage 1 支持） |
-| `--errors` | 打印错误统计汇总 |
-| `--latpath PATH` | KSTR/BMDL/SHAPE 所在目录，默认 `/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures` |
+| `--stage {1,2,3}` | Stage number; required except with `--errors` |
+| `--generate` | Generate the EMTO input files for that stage |
+| `--analyze` | Analyse the completed output of that stage |
+| `--retry` | Regenerate input from the retry queue (stage 1 only) |
+| `--errors` | Print the error summary |
+| `--latpath PATH` | Directory holding KSTR/BMDL/SHAPE, default `/work/scratch/md88vyxi/workplace/highthroughput-dft-rhea/structures` |
 
-## 集群提交（Slurm）
+## Cluster submission (Slurm)
 
-每个 stage 生成输入后，用 `jobs/submit_stage.sh` 提交到 Lichtenberg：
+Once a stage's input has been generated, submit it to Lichtenberg with `jobs/submit_stage.sh`:
 
 ```bash
-# 冒烟测试：前 96 个任务铺满一个节点，拿到耗时分布
+# Smoke test: fill one node with the first 96 tasks to get a runtime distribution
 jobs/submit_stage.sh 1 --limit 96 --chunk 96 --time 02:00:00
 
-# 校准参数后全量提交
+# Full submission once the parameters are calibrated
 jobs/submit_stage.sh 1
 ```
 
-| 选项 | 默认 | 说明 |
+| Option | Default | Description |
 | --- | --- | --- |
-| `--chunk N` | 1000 | 每块任务数；一块由一个 96 核节点消费 |
-| `--maxpar N` | 8 | 同时运行的 array task（节点）上限 |
-| `--time HH:MM:SS` | 24:00:00 | 单个 array task 时限 |
-| `--partition P` / `-p P` | `deflt` | 分区 |
-| `--account A` | `p0020537` | Slurm 账户 |
-| `--limit N` | 0（全部） | 只取前 N 个未完成任务；0 表示不限制 |
-| `--dry-run` | | 只打印统计与 sbatch 命令，不落盘不提交 |
+| `--chunk N` | 1000 | Tasks per chunk; one chunk is consumed by one 96-core node |
+| `--maxpar N` | 8 | Maximum array tasks (nodes) running at once |
+| `--time HH:MM:SS` | 24:00:00 | Time limit for a single array task |
+| `--partition P` / `-p P` | `deflt` | Partition |
+| `--account A` | `p0020537` | Slurm account |
+| `--limit N` | 0 (all) | Take only the first N unfinished tasks; 0 means no limit |
+| `--dry-run` | | Only print the statistics and the sbatch command — write nothing, submit nothing |
 
-`stage` 必须是 `1`、`2` 或 `3`；`--chunk`/`--maxpar` 需为正整数，`--limit`
-需为非负整数，选项值不合法或缺失时脚本会打印错误并以退出码 2 结束，不会
-提交任何作业。
+`stage` must be `1`, `2` or `3`; `--chunk`/`--maxpar` must be positive integers and `--limit`
+a non-negative integer. If an option value is invalid or missing, the script prints an error and
+exits with code 2 without submitting any job.
 
-脚本会扫描 `stageN_*/DFT_XXXX/*.kgrn`，**跳过 `kfcd/<job>.prn` 已含 `FINISHED`
-的点**，把剩下的切块写进 `jobs/worklists/stageN_<时间戳>/`，再提交一个 Slurm
-array 作业。因此**重跑就是再执行一次同一条命令** —— 断点续跑、超时点补算、
-`--retry` 重生成后的补算都不需要手工挑合金。
+The script scans `stageN_*/DFT_XXXX/*.kgrn`, **skips any point whose `kfcd/<job>.prn` already
+contains `FINISHED`**, writes the remaining points as chunks into
+`jobs/worklists/stageN_<timestamp>/`, and submits one Slurm array job. So **re-running is
+simply issuing the same command again** — resuming after an interruption, filling in timed-out
+points, and topping up after a `--retry` regeneration all need no manual selection of alloys.
 
-注意重跑收敛的前提是失败原因是**被打断**（超时、节点故障等）：一个点如果
-本身会持续崩溃或永不收敛，每次重跑都会被原样重新排进 worklist，每次都要
-再烧掉最多 `EMTO_TIMEOUT` 秒才失败，不会自己停止重试；这类点需要靠
-`python run_pipeline.py --stage N --analyze` / `--errors` 识别出来，人工处理
-或调整参数后再走 `--retry`。
+Note that re-running only converges if the failure was an **interruption** (timeout, node
+failure, etc.): a point that genuinely keeps crashing or never converges will be queued into the
+worklist again unchanged on every run, burning up to `EMTO_TIMEOUT` seconds each time before
+failing, and will never stop retrying by itself. Such points have to be identified with
+`python run_pipeline.py --stage N --analyze` / `--errors` and handled manually, or given adjusted
+parameters and then re-run through `--retry`.
 
-三个脚本的分工：
+What each of the three scripts does:
 
-| 脚本 | 职责 |
+| Script | Responsibility |
 | --- | --- |
-| `jobs/submit_stage.sh` | 扫描未完成 → 切块 → `sbatch` |
-| `jobs/job_array.sh` | array 作业体：加载 module，`xargs -P 96` 消费一块 |
-| `jobs/run_one.sh` | 跑一个点：`cd` 进合金目录、幂等跳过、`timeout` 保护、记录耗时；`EMTO_CLEANUP=1` 时额外清中间文件 |
+| `jobs/submit_stage.sh` | Scan for unfinished points → chunk them → `sbatch` |
+| `jobs/job_array.sh` | The array job body: load the module, consume one chunk with `xargs -P 96` |
+| `jobs/run_one.sh` | Run one point: `cd` into the alloy directory, skip idempotently, guard with `timeout`, record runtime; also clears intermediates when `EMTO_CLEANUP=1` |
 
-每个点跑完（无论成功还是失败）都会在 `jobs/worklists/<本次>/timing.log` 追加
-一行，格式 `<jobname> <kgrn秒> <kfcd秒> <退出码>`；但幂等跳过的点（上次已经
-`FINISHED`、这次直接跳过）不会写入，所以行数不等于该次 worklist 的任务总数，
-只能反映本次实际运行过的点。用它来校准 `--chunk` 与 `EMTO_TIMEOUT`：
+Every point that finishes (successfully or not) appends one line to
+`jobs/worklists/<this run>/timing.log`, formatted `<jobname> <kgrn seconds> <kfcd seconds>
+<exit code>`. Points that were skipped idempotently (already `FINISHED` from an earlier run) are
+not recorded, so the line count does not equal the total number of tasks in that worklist — it
+only reflects the points actually run this time. Use it to calibrate `--chunk` and
+`EMTO_TIMEOUT`:
 
-- `--chunk` ≈ 96 × 目标块时长(3~4 h) / 平均单点耗时
-- `EMTO_TIMEOUT` ≈ 最慢点耗时的 3~4 倍（默认 7200 秒）
+- `--chunk` ≈ 96 × target chunk duration (3–4 h) / mean runtime per point
+- `EMTO_TIMEOUT` ≈ 3–4 × the runtime of the slowest point (default 7200 seconds)
 
-### 环境变量（`jobs/run_one.sh` / `jobs/job_array.sh`）
+### Environment variables (`jobs/run_one.sh` / `jobs/job_array.sh`)
 
-`run_one.sh` / `job_array.sh` 本身在计算节点上运行，不接受命令行参数；下面
-这些变量全部要设在**提交作业的那条 `submit_stage.sh` 命令行**上，通过
-`sbatch --export=ALL` 原样带到计算节点，而不是登录到计算节点后再设置：
+`run_one.sh` / `job_array.sh` themselves run on the compute nodes and take no command-line
+arguments. All of the variables below have to be set on **the `submit_stage.sh` command line that
+submits the job**, from where `sbatch --export=ALL` carries them unchanged to the compute nodes —
+not by logging into a compute node and setting them there:
 
 ```bash
 EMTO_TIMEOUT=10800 EMTO_NPROC=48 EMTO_CLEANUP=1 jobs/submit_stage.sh 1
 ```
 
-| 变量 | 默认 | 说明 |
+| Variable | Default | Description |
 | --- | --- | --- |
-| `EMTO_TIMEOUT` | 7200 | 单个 KGRN/KFCD 二进制的墙钟上限（秒） |
-| `EMTO_CLEANUP` | 未设置（不清理） | 设为 `1` 才删除 `.atm/.chd/.pot/.zms` 与 `kgrn/tmp/` 等中间大文件；`.prn` 始终保留供分析阶段解析 |
-| `WORKLIST_DIR` | （由 `submit_stage.sh` 传入） | 非空时向 `$WORKLIST_DIR/timing.log` 追加计时；不建议手动覆盖 |
-| `EMTO_NPROC` | 96 | `job_array.sh` 内 `xargs -P` 的并发数 |
-| `EMTO_BIN` | `$HOME/intel-mkl-omp-build-2021-Mar/bin` | EMTO 二进制所在目录 |
+| `EMTO_TIMEOUT` | 7200 | Wall-clock limit for a single KGRN/KFCD binary (seconds) |
+| `EMTO_CLEANUP` | unset (no cleanup) | Only when set to `1` are the large intermediates — `.atm/.chd/.pot/.zms`, `kgrn/tmp/` and so on — deleted; `.prn` is always kept for the analysis stage to parse |
+| `WORKLIST_DIR` | (passed in by `submit_stage.sh`) | When non-empty, timings are appended to `$WORKLIST_DIR/timing.log`; overriding it by hand is not recommended |
+| `EMTO_NPROC` | 96 | Concurrency for `xargs -P` inside `job_array.sh` |
+| `EMTO_BIN` | `$HOME/intel-mkl-omp-build-2021-Mar/bin` | Directory holding the EMTO binaries |
 
-`EMTO_CLEANUP` 默认不开启：冒烟测试阶段需要保留 `.pot`/`.chd` 等文件排查 SCF
-收敛问题；但全量跑批时 46000 个点若都保留这些势函数与电荷密度文件会很快
-把 scratch 配额耗尽，因此大规模提交前应显式设置 `EMTO_CLEANUP=1`：
+`EMTO_CLEANUP` is off by default: during smoke testing the `.pot`/`.chd` files are needed to
+debug SCF convergence. But in a full production run, keeping these potential and charge-density
+files for all 46000 points would quickly exhaust the scratch quota, so large submissions should
+set `EMTO_CLEANUP=1` explicitly:
 
 ```bash
 EMTO_CLEANUP=1 jobs/submit_stage.sh 1
 ```
 
-完整流程：
+The complete flow:
 
 ```bash
 python run_pipeline.py --stage 1 --generate
-jobs/submit_stage.sh 1 --limit 96 --chunk 96 --time 02:00:00   # 冒烟
-EMTO_CLEANUP=1 jobs/submit_stage.sh 1                           # 全量
+jobs/submit_stage.sh 1 --limit 96 --chunk 96 --time 02:00:00   # smoke test
+EMTO_CLEANUP=1 jobs/submit_stage.sh 1                           # full run
 python run_pipeline.py --stage 1 --analyze
 python run_pipeline.py --stage 1 --retry
-EMTO_CLEANUP=1 jobs/submit_stage.sh 1                           # 补算
+EMTO_CLEANUP=1 jobs/submit_stage.sh 1                           # top-up
 python run_pipeline.py --stage 1 --analyze
 ```
 
-Stage 2、3 同构。
+Stages 2 and 3 work the same way.
 
-### 测试
+### Tests
 
-提交脚本自带一套纯 bash 测试（不依赖 Slurm、EMTO 二进制、pytest 或 bats）：
+The submission scripts come with a pure-bash test suite (no Slurm, EMTO binaries, pytest or
+bats required):
 
 ```bash
 bash jobs/tests/run_all.sh
 ```
 
-## 输出文件
+## Output files
 
-全部写入 `results/`，均为可增量追加的 CSV：
+Everything is written to `results/` as CSVs that can be appended to incrementally:
 
-| 文件 | 内容 |
+| File | Contents |
 | --- | --- |
-| `stage1_coarse_results.csv` | `DFT_ID, Alloy, SWS0, B0`（粗扫） |
+| `stage1_coarse_results.csv` | `DFT_ID, Alloy, SWS0, B0` (coarse scan) |
 | `stage1_retry_queue.csv` | `DFT_ID, Alloy, old_sws_center, new_sws_center, reason, retry_round` |
-| `stage2_fine_results.csv` | `DFT_ID, Alloy, SWS0, B0`（细扫，供 stage3 用） |
-| `stage3_elastic_r2.csv` | 各合金 C′/C44 畸变拟合的 R²、离群剔除点数 |
-| `final_mechanical_properties.csv` | 全量 1598 条:SWS0, B0, C11/C12/C44/C′ 与派生力学量 + R² + Born 稳定性 |
+| `stage2_fine_results.csv` | `DFT_ID, Alloy, SWS0, B0` (fine scan, used by stage3) |
+| `stage3_elastic_r2.csv` | R² and number of outliers dropped for each alloy's C′/C44 distortion fit |
+| `final_mechanical_properties.csv` | All 1598 rows: SWS0, B0, C11/C12/C44/C′ and derived mechanical quantities + R² + Born stability |
 | `stageN_errors.csv` | `DFT_ID, Alloy, SWS, error_type, message` |
 
-**面向合作者的交付版**（`git` 中随版本管理，附中文说明）:
+**The deliverable version for collaborators** (tracked in `git`, with documentation):
 
-| 文件 | 内容 |
+| File | Contents |
 | --- | --- |
-| `20260723-…基态确认1598条….csv` | 全库交付版（与 `final_mechanical_properties.csv` 同内容） |
-| `README-弹性力学性质.md` | 23 列定义、方法、解读、已知局限、溯源 |
-| `20260722-…基态确认1480条….csv` | 历史 v1（README 记录演进用） |
+| `20260723-…-groundstate-confirmed-1598-….csv` | Full-library deliverable (same content as `final_mechanical_properties.csv`) |
+| `README-elastic-mechanical-properties.md` | Definitions of the 23 columns, method, interpretation, known limitations, provenance |
+| `20260722-…基态确认1480条….csv` | Historical v1 (kept so the README can document the evolution) |
 
-`final_mechanical_properties.csv` 的列：`SWS0, B0, C11, C12, C44, cprime, B,
+The columns of `final_mechanical_properties.csv`: `SWS0, B0, C11, C12, C44, cprime, B,
 G_V, G_R, G_VRH, E, nu, B_G_ratio, Cauchy, A, Hv, R2_cprime, R2_c44,
-n_drop_cprime, n_drop_c44, born_stable`。派生量:体模量 `B`，剪切模量
-`G_V`/`G_R`/`G_VRH`（Voigt–Reuss–Hill），杨氏模量 `E`，泊松比 `nu`，
-`B_G_ratio`（Pugh 比），Cauchy 压 `Cauchy = C12 − C44`，各向异性因子
-`A = 2C44/(C11 − C12)`，经验硬度 `Hv = 2(k²G)^0.585 − 3`（`k = G/B`），
-`R2_*`/`n_drop_*` 为畸变拟合的质量与离群守卫剔除点数，`born_stable` 为
-Born 力学稳定性（Y/N）。
+n_drop_cprime, n_drop_c44, born_stable`. The derived quantities: bulk modulus `B`; shear moduli
+`G_V`/`G_R`/`G_VRH` (Voigt–Reuss–Hill); Young's modulus `E`; Poisson's ratio `nu`;
+`B_G_ratio` (Pugh's ratio); Cauchy pressure `Cauchy = C12 − C44`; anisotropy factor
+`A = 2C44/(C11 − C12)`; empirical hardness `Hv = 2(k²G)^0.585 − 3` (with `k = G/B`);
+`R2_*`/`n_drop_*` are the quality of the distortion fit and the number of points removed by the
+outlier guard; `born_stable` is Born mechanical stability (Y/N).
 
-## 模块结构
+## Module structure
 
-| 文件 | 职责 |
+| File | Responsibility |
 | --- | --- |
-| `config.py` | 常量：元素 Wigner–Seitz 半径、EMTO 参数、目录名、采样点数与范围 |
-| `vegard.py` | Vegard 定律估算初始 SWS；校验浓度和为 100 |
-| `emto_generator.py` | CSV 解析；调用 pyemto 生成 EOS / 弹性常数输入 |
-| `eos_analysis.py` | EOS 拟合、粗扫拟合质量检查（`check_coarse_fit`）与重试队列写出 |
-| `elastic_analysis.py` | 解析弹性常数输出、计算力学性能 |
-| `error_collector.py` | 扫描 kgrn/kfcd 输出，识别错误类型并汇总 |
-| `run_pipeline.py` | CLI 入口，串联各阶段 |
-| `jobs/submit_stage.sh` | 扫描未完成任务、切块、提交 Slurm array 作业 |
-| `jobs/job_array.sh` | array 作业体，每节点 `xargs -P 96` 消费一块 worklist |
-| `jobs/run_one.sh` | 单点执行器：幂等、超时保护、计时；`EMTO_CLEANUP=1` 时清中间文件 |
+| `config.py` | Constants: elemental Wigner–Seitz radii, EMTO parameters, directory names, number and range of sampling points |
+| `vegard.py` | Vegard's-law estimate of the initial SWS; checks that the concentrations sum to 100 |
+| `emto_generator.py` | CSV parsing; calls pyemto to generate the EOS / elastic-constant input |
+| `eos_analysis.py` | EOS fitting, coarse-fit quality check (`check_coarse_fit`), and writing the retry queue |
+| `elastic_analysis.py` | Parses the elastic-constant output and computes the mechanical properties |
+| `error_collector.py` | Scans the kgrn/kfcd output, classifies errors and summarises them |
+| `run_pipeline.py` | CLI entry point, chaining the stages together |
+| `jobs/submit_stage.sh` | Scans for unfinished tasks, chunks them, submits the Slurm array job |
+| `jobs/job_array.sh` | The array job body; each node consumes one worklist chunk with `xargs -P 96` |
+| `jobs/run_one.sh` | Single-point executor: idempotent, timeout-guarded, timed; clears intermediates when `EMTO_CLEANUP=1` |
 
-### 错误类型
+### Error types
 
-`error_collector.py` 逐个 job 检查 `kgrn/*.prn` 与 `kfcd/*.prn`，可报出：
+`error_collector.py` checks `kgrn/*.prn` and `kfcd/*.prn` job by job, and can report:
 
-- `missing_output` —— kfcd 输出缺失或为空
-- `scf_not_converged` —— KGRN 输出中出现 `NOT CONVERGED`
-- `no_energy` —— kfcd 输出中找不到 `TOT-PBE` / `TOT-LDA`
-- `nan_energy` —— 总能为 NaN 或无法解析
+- `missing_output` — the kfcd output is missing or empty
+- `scf_not_converged` — `NOT CONVERGED` appears in the KGRN output
+- `no_energy` — neither `TOT-PBE` nor `TOT-LDA` is found in the kfcd output
+- `nan_energy` — the total energy is NaN or cannot be parsed
 
-EOS 拟合额外的保护：有效 SWS 点少于 4 个、拟合抛异常，或 `B0 ≤ 0`、`B0 > 1000 GPa`
-都判为失败并进入重试队列（stage 1）。
+Additional guards on the EOS fit: fewer than 4 valid SWS points, an exception raised during the
+fit, `B0 ≤ 0`, or `B0 > 1000 GPa` all count as failures and go into the retry queue (stage 1).
 
-## 依赖
+## Dependencies
 
 - Python 3
 - `numpy`
 - `pyemto`
-- `pytest`（仅测试）
+- `pytest` (tests only)
 
-## 测试
+## Tests
 
-测试直接 import 顶层模块，需要在仓库根目录运行：
+The tests import the top-level modules directly, so they must be run from the repository root:
 
 ```bash
 python -m pytest tests/
 ```
 
-## 文档
+## Documentation
 
-- **stage3 弹性常数报告**：`docs/stage3-report.md` —— 方法、全库结果、§4.1 Born 失稳成分规律、§5 收敛调参分档、§5.1 AMIX 物理
-- **stage2 细扫 EOS 报告**：`docs/stage2-summary-report.md`
-- **交付版说明**：`results/README-弹性力学性质.md`
-- **归档 / 清理 manifest**：`docs/archive-manifest.md` —— raw DFT 目录逐条删除命令 + 再生方式
-- 设计文档：`docs/superpowers/specs/2026-07-20-highthroughput-emto-rhea-design.md`、`docs/superpowers/specs/2026-07-23-repo-github-vs-archive-design.md`
-- 实施计划：`docs/superpowers/plans/2026-07-20-highthroughput-emto-rhea.md`
+- **stage3 elastic-constant report**: `docs/stage3-report.md` — method, full-library results,
+  §4.1 the compositional pattern of Born instability, §5 the tiers of convergence tuning,
+  §5.1 AMIX physics
+- **stage2 fine-scan EOS report**: `docs/stage2-summary-report.md`
+- **Deliverable documentation**: `results/README-elastic-mechanical-properties.md`
+- **Archive / cleanup manifest**: `docs/archive-manifest.md` — per-directory deletion commands
+  for the raw DFT output, plus how to regenerate it
+- Design documents: `docs/superpowers/specs/2026-07-20-highthroughput-emto-rhea-design.md`,
+  `docs/superpowers/specs/2026-07-23-repo-github-vs-archive-design.md`
+- Implementation plan: `docs/superpowers/plans/2026-07-20-highthroughput-emto-rhea.md`

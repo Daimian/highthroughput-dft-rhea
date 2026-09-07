@@ -1,6 +1,6 @@
 # Elastic and mechanical properties of refractory high-entropy alloys (full library)
 
-English | [中文](README-弹性力学性质.md)
+English | [中文](README-elastic-mechanical-properties.zh.md)
 
 **Data file**: `20260723-refractory-hea-elastic-mechanical-properties-groundstate-confirmed-1598-highthroughput-dft.csv`
 **Date**: 2026-07-23　|　**Method**: EMTO-CPA / PBE, BCC　|　**Version**: v3 (full library, 1598/1598)
@@ -105,5 +105,5 @@ are dimensionless.
 
 - Input compositions: `20260718-refractory-hea-compositions-1600-highthroughput-dft.csv` (1598 rows).
 - For the calculation code and the tiered convergence strategy, see `config.py` /
-  `elastic_analysis.py` in the repository and `docs/stage3-report.en.md`.
+  `elastic_analysis.py` in the repository and `docs/stage3-report.md`.
 - All 1598 rows (same content as this file's data set): `results/final_mechanical_properties.csv`.

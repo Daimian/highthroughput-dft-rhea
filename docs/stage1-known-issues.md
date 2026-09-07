@@ -1,29 +1,51 @@
-# Stage 1 拟合：已解决问题记录
+# Stage 1 fitting: record of resolved issues
 
-[English](stage1-known-issues.en.md) | 中文
+English | [中文](stage1-known-issues.zh.md)
 
-**Stage1 最终：1598 / 1598 合金全部拟合成功（100%），retry 队列为空。**
+**Final stage1 status: all 1598 / 1598 alloys fitted successfully (100%), and the retry queue is
+empty.**
 
-## 曾经的 4 个"未解决"合金（已解决）
+## The 4 formerly "unresolved" alloys (now resolved)
 
-DFT_0470 / DFT_0933 / DFT_1421 / DFT_1259，均为 V-Ta-Hf 富集（V 24–40%，Ta 25–44%，Hf 15–18%）。
+DFT_0470 / DFT_0933 / DFT_1421 / DFT_1259, all V-Ta-Hf-rich (V 24–40%, Ta 25–44%, Hf 15–18%).
 
-### 现象
-每个都存在**两个电子态**，能隙恒为 **~20–24 Ry**（≈272 eV，半芯态量级）：
-- **基态**（有极小）点数 5–8 个；
-- **亚稳态**（单调、无极小）点数更多（6–14 个）。
+### Symptoms
 
-### 真正的根因（一度误判为物理墙）
-最初以为需要 `setups`/半芯态层面的物理调参。实际验证发现：**只用基态簇拟合即得干净物理结果**（B0 141–167 GPa，R²≈1.0）。问题在于**离群能量守卫**当时用"保留最多点的簇"，而这 4 个的亚稳态点更多 → 守卫保留了无极小的亚稳态、丢掉了基态 → 拟合发散。
+Each of them had **two electronic states** with a constant gap of **~20–24 Ry** (≈272 eV, the scale
+of a semi-core state):
 
-对照佐证：V-Ta-Hf 邻域 48 个合金里 44 个成功，且多态很普遍（成功的合金也常有 2–5 态）——近乎相同成分的 DFT_0468(Mo20V40Ta25Hf15) 成功而 DFT_0933(Ti20V40Ta25Hf15) 失败，说明不是物理墙。
+- the **ground state** (which has a minimum) covered 5–8 points;
+- the **metastable state** (monotonic, no minimum) covered more points (6–14).
 
-### 解决
-守卫改为**保留点数 ≥3 的簇中能量最低的那个（=基态）**（commit f6cea3c）：
-- 亚稳态点更多 → 仍保留更低的基态（解决这 4 个）；
-- 孤立伪低点（<3 点）→ 跳过，保留基态（兼容 DFT_0787 那类）。
+### The actual root cause (briefly misdiagnosed as a physical wall)
 
-零重算，1594 → 1598。
+The initial assumption was that this needed physical tuning at the level of `setups` / the semi-core
+states. Verification showed otherwise: **fitting the ground-state cluster alone already gives clean
+physical results** (B0 141–167 GPa, R²≈1.0). The problem was that the **outlier energy guard** at the
+time kept "the cluster with the most points", and for these four the metastable state had more points
+→ the guard kept the metastable state, which has no minimum, and discarded the ground state → the fit
+diverged.
 
-### 教训
-多态/双稳在难熔 HEA 里普遍存在；EOS 拟合的正确对象永远是**基态簇**（最低能的真实电子态），而非最热闹的簇。诊断脚本见 `scratchpad/diag4.py`、`scratchpad/similar_vtahf.py`。
+Supporting evidence: 44 of the 48 alloys in the V-Ta-Hf neighbourhood succeeded, and multiple states
+are very common (successful alloys often have 2–5 states as well) — DFT_0468 (Mo20V40Ta25Hf15)
+succeeded while the nearly identical DFT_0933 (Ti20V40Ta25Hf15) failed, which shows this was not a
+physical wall.
+
+### The fix
+
+The guard was changed to **keep the lowest-energy cluster among those with ≥3 points (= the ground
+state)** (commit f6cea3c):
+
+- the metastable state has more points → the lower-lying ground state is still kept (this fixes the
+  four alloys);
+- an isolated spurious low point (<3 points) → skipped, and the ground state is kept (which keeps
+  cases like DFT_0787 working).
+
+No recomputation was needed: 1594 → 1598.
+
+### Lesson
+
+Multiple states / bistability are widespread in refractory HEAs, and the correct target of an EOS fit
+is always the **ground-state cluster** (the lowest-energy real electronic state), not the most
+populated one. For the diagnostic scripts see `scratchpad/diag4.py` and
+`scratchpad/similar_vtahf.py`.

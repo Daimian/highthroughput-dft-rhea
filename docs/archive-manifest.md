@@ -1,5 +1,7 @@
 # 归档 / 清理 manifest
 
+[English](archive-manifest.en.md) | 中文
+
 日期:2026-07-23　|　设计依据:`docs/superpowers/specs/2026-07-23-repo-github-vs-archive-design.md`
 
 ## 结论

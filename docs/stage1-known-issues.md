@@ -1,5 +1,7 @@
 # Stage 1 拟合：已解决问题记录
 
+[English](stage1-known-issues.en.md) | 中文
+
 **Stage1 最终：1598 / 1598 合金全部拟合成功（100%），retry 队列为空。**
 
 ## 曾经的 4 个"未解决"合金（已解决）

@@ -1,5 +1,7 @@
 # Stage 3（弹性常数）报告
 
+[English](stage3-report.en.md) | 中文
+
 日期：2026-07-21　|　方法：EMTO-CPA / PBE，BCC，保体积畸变
 
 ## 1. 方法

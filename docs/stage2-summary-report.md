@@ -1,5 +1,7 @@
 # Stage 2（精细 EOS）结果总结报告
 
+[English](stage2-summary-report.en.md) | 中文
+
 日期：2026-07-21　|　方法：EMTO-CPA / PBE，BCC，Morse EOS 拟合（11 点 ±1.5% 精细窗口）
 
 ## 1. 总体完成度

@@ -1,5 +1,7 @@
 # highthroughput-dft-rhea
 
+[English](README.en.md) | 中文
+
 面向 BCC 难熔高熵合金（RHEA）的高通量 EMTO-CPA 计算流水线。基于
 [pyemto](https://github.com/hpleva/pyemto) 批量生成 KGRN/KFCD 输入文件，并对集群
 算完的结果做状态方程（EOS）拟合、弹性常数拟合与力学性能推导。

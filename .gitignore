@@ -17,6 +17,8 @@ results/*
 !results/20260722-难熔高熵合金弹性力学性质-基态确认1480条-高通量DFT计算.csv
 !results/final_mechanical_properties.csv
 !results/README-弹性力学性质.md
+!results/20260723-refractory-hea-elastic-mechanical-properties-groundstate-confirmed-1598-highthroughput-dft.csv
+!results/README-elastic-mechanical-properties.md
 !results/stage1_coarse_results.csv
 !results/stage2_fine_results.csv
 !results/stage3_elastic_r2.csv

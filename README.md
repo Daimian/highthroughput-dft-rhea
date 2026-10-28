@@ -322,3 +322,7 @@ python -m pytest tests/
 - Design documents: `docs/superpowers/specs/2026-07-20-highthroughput-emto-rhea-design.md`,
   `docs/superpowers/specs/2026-07-23-repo-github-vs-archive-design.md`
 - Implementation plan: `docs/superpowers/plans/2026-07-20-highthroughput-emto-rhea.md`
+
+## License
+
+[MIT](LICENSE)
